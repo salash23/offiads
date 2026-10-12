@@ -1,61 +1,85 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OFFIADS - La publicité au cœur des pharmacies</title>
+  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: '#081726',
+              navy: '#0e2439',
+              green: '#009668',
+              'green-hover': '#00835b',
+              'green-light': '#e8f8f2',
+              cyan: '#00a3ff',
+              surface: '#F4F7FA'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
   <style>
     body { font-family: 'Inter', sans-serif; }
-    .brand-green { color: #009668; }
-    .bg-brand-green { background-color: #009668; }
-    .border-brand-green { border-color: #009668; }
-    .bg-brand-dark { background-color: #081726; }
+    /* Custom toast animation */
+    @keyframes toastIn {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-toast { animation: toastIn 0.25s ease-out forwards; }
   </style>
 </head>
-<body class="bg-[#F4F7FA] text-slate-800 antialiased selection:bg-[#009668] selection:text-white">
+<body class="bg-[#F4F7FA] text-slate-800 antialiased selection:bg-[#009668] selection:text-white min-h-full flex flex-col">
 
-  <!-- ========================================== -->
-  <!-- TOP DEV SWITCHER BAR                      -->
-  <!-- ========================================== -->
+  <!-- ============================================================ -->
+  <!-- 0. FLOATING DEV VIEW SWITCHER                                -->
+  <!-- ============================================================ -->
   <header class="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 bg-white/95 px-6 py-2.5 backdrop-blur-md shadow-xs">
     <div class="flex items-center gap-2">
-      <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-      <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Navigation / Aperçu :</span>
+      <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Mode Aperçu & Test :</span>
     </div>
     <div class="flex items-center gap-1.5 rounded-xl bg-slate-100 p-1">
-      <button onclick="switchView('landing')" id="btn-landing" class="view-btn rounded-lg px-3.5 py-1.5 text-xs font-semibold bg-white text-[#009668] shadow-xs transition">
+      <button onclick="switchView('landing')" id="nav-btn-landing" class="rounded-lg px-3.5 py-1.5 text-xs font-semibold bg-white text-[#009668] shadow-xs transition">
         Landing Page
       </button>
-      <button onclick="switchView('builder')" id="btn-builder" class="view-btn rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+      <button onclick="switchView('builder')" id="nav-btn-builder" class="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
         Créer une campagne
       </button>
-      <button onclick="switchView('dashboard')" id="btn-dashboard" class="view-btn rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+      <button onclick="switchView('dashboard')" id="nav-btn-dashboard" class="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
         Tableau de bord (Admin)
       </button>
     </div>
   </header>
 
-  <!-- ========================================== -->
-  <!-- 1. LANDING PAGE VIEW                       -->
-  <!-- ========================================== -->
-  <div id="view-landing" class="view-section block min-h-screen">
+  <!-- ============================================================ -->
+  <!-- 1. LANDING PAGE VIEW                                         -->
+  <!-- ============================================================ -->
+  <div id="view-landing" class="view-panel block">
     <!-- Navbar -->
     <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
       <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('landing')">
         <svg class="h-8 w-8" viewBox="0 0 100 100">
           <defs>
-            <linearGradient id="offiGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+            <linearGradient id="offiGrad1" x1="0%" y1="100%" x2="100%" y2="0%">
               <stop offset="0%" stop-color="#00A3FF" />
               <stop offset="100%" stop-color="#00B37E" />
             </linearGradient>
           </defs>
-          <circle cx="50" cy="50" r="40" stroke="url(#offiGrad)" stroke-width="12" fill="none" stroke-dasharray="180 80" stroke-linecap="round" />
+          <circle cx="50" cy="50" r="40" stroke="url(#offiGrad1)" stroke-width="12" fill="none" stroke-dasharray="180 80" stroke-linecap="round" />
           <path d="M42 62 L42 45" stroke="#00B37E" stroke-width="8" stroke-linecap="round" />
           <path d="M52 62 L52 35" stroke="#00B37E" stroke-width="8" stroke-linecap="round" />
           <path d="M62 62 L62 25" stroke="#00A3FF" stroke-width="8" stroke-linecap="round" />
@@ -64,18 +88,26 @@
       </div>
 
       <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-        <a href="#accueil" class="font-semibold text-slate-900 border-b-2 border-[#009668] pb-1">Accueil</a>
-        <a href="#marche" class="hover:text-[#009668] transition">Comment ça marche</a>
-        <a href="#atouts" class="hover:text-[#009668] transition">Nos atouts</a>
-        <a href="#tarifs" class="hover:text-[#009668] transition">Tarification</a>
-        <a href="#contact" class="hover:text-[#009668] transition">Contact</a>
+        <a href="#view-landing" class="font-semibold text-slate-900 border-b-2 border-[#009668] pb-1">Accueil</a>
+        <a href="#section-marche" class="hover:text-[#009668] transition">Comment ça marche</a>
+        <a href="#section-atouts" class="hover:text-[#009668] transition">Nos atouts</a>
+        <a href="javascript:void(0)" onclick="showToast('Section Tarifs : 600 DA CPM fixe')" class="hover:text-[#009668] transition">Tarification</a>
+        <a href="javascript:void(0)" onclick="openContactModal()" class="hover:text-[#009668] transition">Contact</a>
       </div>
 
       <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg px-2.5 py-1.5 cursor-pointer">
-          <span>FR</span>
-          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        <div class="relative">
+          <button onclick="toggleLangDropdown()" class="flex items-center gap-1 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white hover:bg-slate-50 transition shadow-2xs">
+            <span id="current-lang">FR</span>
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div id="dropdown-lang" class="hidden absolute right-0 mt-1 w-20 rounded-lg border border-slate-200 bg-white shadow-lg py-1 text-xs z-50">
+            <button onclick="changeLang('FR')" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 font-semibold text-slate-700">FR</button>
+            <button onclick="changeLang('AR')" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 font-semibold text-slate-700">AR</button>
+            <button onclick="changeLang('EN')" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 font-semibold text-slate-700">EN</button>
+          </div>
         </div>
+
         <button onclick="switchView('dashboard')" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs">
           Se connecter
         </button>
@@ -86,7 +118,7 @@
       </div>
     </nav>
 
-    <!-- Hero -->
+    <!-- Hero Section -->
     <section class="mx-auto max-w-7xl px-6 pt-10 pb-16">
       <div class="grid lg:grid-cols-12 gap-12 items-center">
         <div class="lg:col-span-7 space-y-6">
@@ -109,18 +141,18 @@
               <span>Créer une campagne</span>
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
             </button>
-            <button class="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs">
+            <button onclick="openVideoDemoModal()" class="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs">
               <svg class="h-4 w-4 fill-slate-800 text-slate-800" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               <span>Voir comment ça marche</span>
             </button>
           </div>
         </div>
 
-        <!-- Pharmacy Screen Showcase Mockup -->
+        <!-- Pharmacy Mockup Screen -->
         <div class="lg:col-span-5 relative">
           <div class="relative mx-auto w-full max-w-md rounded-2xl bg-black p-3.5 shadow-2xl ring-1 ring-slate-900/10">
-            <div class="relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-900 border border-slate-800">
-              <div class="absolute inset-0 bg-gradient-to-tr from-sky-900/40 via-transparent to-emerald-900/20"></div>
+            <div class="relative aspect-4/3 overflow-hidden rounded-xl bg-slate-900 border border-slate-800">
+              <div class="absolute inset-0 bg-linear-to-tr from-sky-900/40 via-transparent to-emerald-900/20"></div>
               <div class="relative h-full flex flex-col justify-between p-6 text-white">
                 <div>
                   <span class="text-[11px] font-bold tracking-widest uppercase text-sky-400">LA ROCHE-POSAY</span>
@@ -128,11 +160,11 @@
                   <p class="mt-1 text-xs text-slate-300">Soins dermatologiques recommandés par les pharmaciens.</p>
                 </div>
                 <div class="flex items-end justify-between">
-                  <button class="rounded-lg bg-sky-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md">
+                  <button onclick="showToast('Interactivité écran tactile en pharmacie validée !')" class="rounded-lg bg-sky-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md hover:bg-sky-600 transition">
                     Découvrir
                   </button>
                   <div class="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 backdrop-blur-xs text-[10px] text-slate-200">
-                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                     Écran connecté #042
                   </div>
                 </div>
@@ -143,40 +175,40 @@
       </div>
 
       <!-- Feature Highlights -->
-      <div class="mt-16 grid md:grid-cols-3 gap-6">
-        <div class="flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-md transition">
+      <div id="section-atouts" class="mt-16 grid md:grid-cols-3 gap-6">
+        <div class="flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs hover:shadow-md transition">
           <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[#009668]">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
           </div>
           <div>
             <h3 class="font-bold text-slate-900">Ciblage précis</h3>
-            <p class="mt-1 text-xs leading-relaxed text-slate-600">Diffusez vos publicités selon la wilaya, la région ou le nombre exact de pharmacies.</p>
+            <p class="mt-1 text-xs leading-relaxed text-slate-600">Diffusez vos publicités selon la wilaya, la région ou le nombre de pharmacies.</p>
           </div>
         </div>
 
-        <div class="flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-md transition">
+        <div class="flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs hover:shadow-md transition">
           <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
           </div>
           <div>
             <h3 class="font-bold text-slate-900">Formats flexibles</h3>
-            <p class="mt-1 text-xs leading-relaxed text-slate-600">Image ou vidéo haute définition, calibrés et adaptés à vos objectifs commerciaux.</p>
+            <p class="mt-1 text-xs leading-relaxed text-slate-600">Image ou vidéo haute définition, calibrés et adaptés à vos objectifs.</p>
           </div>
         </div>
 
-        <div class="flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-md transition">
+        <div class="flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs hover:shadow-md transition">
           <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[#009668]">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
           </div>
           <div>
             <h3 class="font-bold text-slate-900">Suivi en temps réel</h3>
-            <p class="mt-1 text-xs leading-relaxed text-slate-600">Consultez les statistiques d'affichage, la conformité de diffusion et mesurez le ROI.</p>
+            <p class="mt-1 text-xs leading-relaxed text-slate-600">Consultez les statistiques d'affichage et mesurez la performance.</p>
           </div>
         </div>
       </div>
 
-      <!-- How It Works -->
-      <div class="mt-20 text-center">
+      <!-- How it works -->
+      <div id="section-marche" class="mt-20 text-center">
         <h2 class="text-2xl md:text-3xl font-extrabold text-[#081726]">Comment ça marche ?</h2>
         <p class="mt-1 text-sm text-slate-500">Lancez votre campagne en quelques étapes simples.</p>
 
@@ -184,25 +216,25 @@
           <div class="flex flex-col items-center">
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f8f2] text-sm font-bold text-[#009668]">1</div>
             <h4 class="mt-4 font-bold text-slate-900">Créez votre campagne</h4>
-            <p class="mt-1 text-xs text-slate-500 max-w-xs">Choisissez votre objectif, le format adapté et vos visuels de communication.</p>
+            <p class="mt-1 text-xs text-slate-500 max-w-xs">Choisissez votre objectif et vos visuels.</p>
           </div>
 
           <div class="flex flex-col items-center">
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f8f2] text-sm font-bold text-[#009668]">2</div>
             <h4 class="mt-4 font-bold text-slate-900">Définissez votre ciblage</h4>
-            <p class="mt-1 text-xs text-slate-500 max-w-xs">Sélectionnez la wilaya, la région et le nombre exact de pharmacies cibles.</p>
+            <p class="mt-1 text-xs text-slate-500 max-w-xs">Sélectionnez la wilaya, la région et le nombre de pharmacies.</p>
           </div>
 
           <div class="flex flex-col items-center">
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f8f2] text-sm font-bold text-[#009668]">3</div>
             <h4 class="mt-4 font-bold text-slate-900">Validez et diffusez</h4>
-            <p class="mt-1 text-xs text-slate-500 max-w-xs">Consultez le budget estimé, payez en toute sécurité et lancez la diffusion instantanée.</p>
+            <p class="mt-1 text-xs text-slate-500 max-w-xs">Consultez le budget estimé et lancez votre campagne.</p>
           </div>
         </div>
       </div>
 
       <!-- Footer CTA Banner -->
-      <div class="mt-20 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="mt-20 rounded-2xl border border-slate-200 bg-white p-8 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-5">
           <div class="flex items-center gap-2">
             <span class="text-2xl font-black text-[#081726]">OFFI<span class="text-[#009668]">ADS</span></span>
@@ -220,11 +252,11 @@
     </section>
   </div>
 
-  <!-- ========================================== -->
-  <!-- 2. CAMPAIGN BUILDER VIEW                   -->
-  <!-- ========================================== -->
-  <div id="view-builder" class="view-section hidden min-h-screen">
-    <div class="flex min-h-screen">
+  <!-- ============================================================ -->
+  <!-- 2. CAMPAIGN BUILDER VIEW                                     -->
+  <!-- ============================================================ -->
+  <div id="view-builder" class="view-panel hidden flex-1 flex flex-col">
+    <div class="flex flex-1">
       <!-- Sidebar -->
       <aside class="w-64 shrink-0 border-r border-slate-200 bg-white p-5 flex flex-col justify-between">
         <div class="space-y-6">
@@ -239,45 +271,44 @@
           </div>
 
           <nav class="space-y-1 text-sm font-medium">
-            <a href="javascript:switchView('dashboard')" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition">
+            <button onclick="switchView('dashboard')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition text-left">
               <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
               Tableau de bord
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl bg-emerald-50 px-3.5 py-2.5 font-semibold text-[#009668] transition">
+            </button>
+            <button onclick="switchView('builder')" class="w-full flex items-center gap-3 rounded-xl bg-emerald-50 px-3.5 py-2.5 font-semibold text-[#009668] transition text-left">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
               Nouvelle campagne
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition">
+            </button>
+            <button onclick="showToast('Affichage de la liste de vos 12 campagnes passées')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition text-left">
               <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
               Mes campagnes
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition">
+            </button>
+            <button onclick="showToast('Téléchargement du dernier rapport de performance PDF...')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition text-left">
               <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               Rapports
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition">
+            </button>
+            <button onclick="showToast('Redirection vers vos factures & reçus Fiscale')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition text-left">
               <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
               Factures
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition">
+            </button>
+            <button onclick="openRechargeModal()" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition text-left">
               <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               Mon portefeuille
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition">
+            </button>
+            <button onclick="showToast('Ouverture des paramètres du compte')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-slate-600 hover:bg-slate-50 transition text-left">
               <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
               Paramètres
-            </a>
+            </button>
           </nav>
         </div>
 
-        <!-- Help Card -->
         <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-center">
           <div class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100/60 text-[#009668]">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           </div>
           <h4 class="mt-2 text-xs font-bold text-slate-900">Besoin d'aide ?</h4>
           <p class="mt-0.5 text-[11px] text-slate-500">Notre équipe est là pour vous accompagner.</p>
-          <button class="mt-3 w-full rounded-xl border border-emerald-600/30 bg-white py-1.5 text-xs font-semibold text-[#009668] hover:bg-emerald-50 transition">
+          <button onclick="openContactModal()" class="mt-3 w-full rounded-xl border border-emerald-600/30 bg-white py-1.5 text-xs font-semibold text-[#009668] hover:bg-emerald-50 transition">
             Nous contacter
           </button>
         </div>
@@ -294,13 +325,13 @@
           <div class="flex items-center gap-4">
             <div class="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-xs">
               <span class="text-slate-500 font-medium">Solde disponible:</span>
-              <span class="font-bold text-[#009668]">120 000 DA</span>
+              <span id="user-balance-display" class="font-bold text-[#009668]">120 000 DA</span>
             </div>
-            <button class="rounded-xl bg-[#009668] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#00835b] transition">
+            <button onclick="openRechargeModal()" class="rounded-xl bg-[#009668] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#00835b] transition shadow-2xs">
               Recharger
             </button>
             <div class="h-4 w-px bg-slate-200"></div>
-            <div class="flex items-center gap-2 cursor-pointer">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="showToast('Profil annonceur: Laboratoires Dermavital Algérie')">
               <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">AP</div>
               <span class="text-xs font-semibold text-slate-700">Annonceur Pro</span>
               <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -308,9 +339,9 @@
           </div>
         </header>
 
-        <!-- Stepper Form & Summary Grid -->
+        <!-- Stepper Form & Live Summary -->
         <main class="p-8 max-w-7xl mx-auto w-full grid grid-cols-12 gap-8">
-          <!-- Stepper Column -->
+          <!-- Stepper Left Column -->
           <div class="col-span-12 lg:col-span-8 space-y-6">
             <div>
               <h1 class="text-2xl font-black text-slate-900">Créer une campagne</h1>
@@ -328,7 +359,7 @@
               </div>
 
               <div class="grid grid-cols-2 gap-4">
-                <div id="card-format-image" onclick="selectFormat('image')" class="cursor-pointer flex items-center justify-between rounded-xl border-2 border-[#009668] bg-emerald-50/20 p-4 transition">
+                <div id="btn-format-img" onclick="setAdFormat('image')" class="cursor-pointer flex items-center justify-between rounded-xl border-2 border-[#009668] bg-emerald-50/20 p-4 transition">
                   <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-[#009668]">
                       <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -338,10 +369,10 @@
                       <div class="text-[11px] text-slate-500">Format JPG ou PNG</div>
                     </div>
                   </div>
-                  <div id="check-format-image" class="h-5 w-5 rounded-full bg-[#009668] flex items-center justify-center text-white text-xs">✓</div>
+                  <div id="badge-check-img" class="h-5 w-5 rounded-full bg-[#009668] flex items-center justify-center text-white text-xs">✓</div>
                 </div>
 
-                <div id="card-format-video" onclick="selectFormat('video')" class="cursor-pointer flex items-center justify-between rounded-xl border-2 border-slate-200 p-4 transition hover:border-slate-300">
+                <div id="btn-format-vid" onclick="setAdFormat('video')" class="cursor-pointer flex items-center justify-between rounded-xl border-2 border-slate-200 p-4 transition hover:border-slate-300">
                   <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
                       <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -351,7 +382,7 @@
                       <div class="text-[11px] text-slate-500">Format MP4 (max 30s)</div>
                     </div>
                   </div>
-                  <div id="check-format-video" class="hidden h-5 w-5 rounded-full bg-[#009668] flex items-center justify-center text-white text-xs">✓</div>
+                  <div id="badge-check-vid" class="hidden h-5 w-5 rounded-full bg-[#009668] flex items-center justify-center text-white text-xs">✓</div>
                 </div>
               </div>
             </div>
@@ -368,44 +399,49 @@
 
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-medium text-slate-700 mb-4">
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="targeting" class="text-[#009668] accent-[#009668]" /> Toute l'Algérie
+                  <input type="radio" name="targetRadio" value="all" onchange="changeTargetMode('all')" class="accent-[#009668]" /> Toute l'Algérie
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="targeting" checked class="text-[#009668] accent-[#009668]" /> Par région
+                  <input type="radio" name="targetRadio" value="region" checked onchange="changeTargetMode('region')" class="accent-[#009668]" /> Par région
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="targeting" class="text-[#009668] accent-[#009668]" /> Par wilaya
+                  <input type="radio" name="targetRadio" value="wilaya" onchange="changeTargetMode('wilaya')" class="accent-[#009668]" /> Par wilaya
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="targeting" class="text-[#009668] accent-[#009668]" /> Pharmacies spécifiques
+                  <input type="radio" name="targetRadio" value="specific" onchange="changeTargetMode('specific')" class="accent-[#009668]" /> Pharmacies cibles
                 </label>
               </div>
 
               <div class="grid sm:grid-cols-2 gap-4 items-center">
                 <div>
-                  <label class="text-xs font-semibold text-slate-700 block mb-1">Wilaya</label>
+                  <label class="text-xs font-semibold text-slate-700 block mb-1">Sélection Wilaya</label>
                   <div class="relative">
-                    <select id="wilaya-select" onchange="updateWilaya(this.value)" class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:border-[#009668] focus:outline-hidden">
-                      <option value="Alger">16 - Alger</option>
-                      <option value="Oran">31 - Oran</option>
-                      <option value="Constantine">25 - Constantine</option>
-                      <option value="Annaba">23 - Annaba</option>
-                      <option value="Blida">09 - Blida</option>
+                    <select id="select-wilaya" onchange="updateWilayaChoice(this.value)" class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:border-[#009668] focus:outline-hidden">
+                      <option value="Alger">16 - Alger (Centre)</option>
+                      <option value="Oran">31 - Oran (Ouest)</option>
+                      <option value="Constantine">25 - Constantine (Est)</option>
+                      <option value="Annaba">23 - Annaba (Est)</option>
+                      <option value="Blida">09 - Blida (Centre)</option>
+                      <option value="Sétif">19 - Sétif (Hauts-Plateaux)</option>
+                      <option value="Tlemcen">13 - Tlemcen (Ouest)</option>
                     </select>
                     <svg class="pointer-events-none absolute right-3 top-3 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                   </div>
                 </div>
 
-                <!-- Map Widget -->
+                <!-- Map Silhouette with Pin -->
                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center justify-between">
-                  <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 shadow-xs">
-                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                    <span id="badge-wilaya">Alger</span>
-                  </span>
+                  <div>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 shadow-2xs">
+                      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                      <span id="zone-badge-label">Alger</span>
+                    </span>
+                    <p class="text-[10px] text-slate-400 mt-1">Couverture certifiée OFFIADS</p>
+                  </div>
                   <div class="h-12 w-20 text-slate-300">
                     <svg viewBox="0 0 100 80" class="w-full h-full fill-current">
                       <path d="M10,20 Q30,10 50,20 T90,25 Q80,60 50,75 Q20,60 10,20 Z" />
-                      <circle cx="58" cy="22" r="6" fill="#009668" />
+                      <circle id="map-pin-dot" cx="58" cy="22" r="5" fill="#009668" />
                     </svg>
                   </div>
                 </div>
@@ -423,15 +459,15 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1">
-                  <span id="slider-val" class="text-sm font-bold text-slate-900">50</span>
+                  <span id="display-pharma-num" class="text-sm font-bold text-slate-900">50</span>
                   <span class="text-xs text-slate-400">pharmacies</span>
                 </div>
               </div>
 
-              <input id="pharma-range" type="range" min="10" max="500" value="50" oninput="updateCalculator(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#009668]" />
+              <input id="input-pharma-slider" type="range" min="10" max="500" value="50" step="5" oninput="recalcPricing(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#009668]" />
               <div class="flex justify-between text-[11px] font-medium text-slate-400 mt-2">
-                <span>10</span>
-                <span>500</span>
+                <span>10 pharmacies min</span>
+                <span>500 pharmacies max</span>
               </div>
             </div>
 
@@ -448,87 +484,102 @@
               <div class="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label class="text-xs font-semibold text-slate-700 block mb-1">Durée de la campagne</label>
-                  <select class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-800">
-                    <option>1 mois</option>
-                    <option>2 semaines</option>
-                    <option>3 mois</option>
+                  <select id="select-duration" onchange="updateDurationChoice(this.value)" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-800">
+                    <option value="1">1 mois (30 jours)</option>
+                    <option value="0.5">2 semaines (14 jours)</option>
+                    <option value="2">2 mois (60 jours)</option>
+                    <option value="3">3 mois (90 jours)</option>
                   </select>
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-slate-700 block mb-1">Fréquence d'affichage</label>
-                  <select class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-800">
-                    <option>3 fois par heure</option>
-                    <option>1 fois par heure</option>
-                    <option>6 fois par heure</option>
+                  <select id="select-frequency" onchange="updateFreqChoice(this.value)" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-800">
+                    <option value="3">3 fois par heure (Recommandé)</option>
+                    <option value="1">1 fois par heure</option>
+                    <option value="6">6 fois par heure (Impact fort)</option>
                   </select>
                 </div>
               </div>
             </div>
 
-            <!-- Step 5: Visuel -->
+            <!-- Step 5: Visuel & Drag-and-Drop File Upload -->
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
               <div class="flex items-center gap-3 mb-4">
                 <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[#009668] text-xs font-bold text-white">5</span>
                 <div>
                   <h3 class="text-sm font-bold text-slate-900">Votre visuel</h3>
-                  <p class="text-[11px] text-slate-400">Ajoutez votre image ou votre vidéo.</p>
+                  <p class="text-[11px] text-slate-400">Ajoutez votre image ou votre vidéo publicitaire.</p>
                 </div>
               </div>
 
               <div class="grid sm:grid-cols-2 gap-4">
-                <div class="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center flex flex-col items-center justify-center hover:border-[#009668] transition cursor-pointer bg-slate-50/50">
+                <!-- Dropzone -->
+                <div onclick="document.getElementById('file-upload-input').click()" 
+                     id="upload-dropzone"
+                     class="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center flex flex-col items-center justify-center hover:border-[#009668] transition cursor-pointer bg-slate-50/50">
                   <svg class="h-8 w-8 text-[#009668]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                  <span class="mt-2 text-xs font-bold text-slate-800">Glissez votre fichier ici</span>
-                  <span class="text-[11px] text-slate-400">ou cliquez pour parcourir</span>
+                  <span id="upload-main-text" class="mt-2 text-xs font-bold text-slate-800">Glissez votre fichier ici</span>
+                  <span class="text-[11px] text-slate-400">ou cliquez pour parcourir vos dossiers</span>
                   <span class="mt-1 text-[10px] text-slate-400">JPG, PNG ou MP4 (max 30s)</span>
+                  <input type="file" id="file-upload-input" class="hidden" accept="image/*,video/mp4" onchange="handleFileSelected(event)">
                 </div>
 
-                <div class="relative rounded-2xl border border-slate-200 bg-slate-900 p-3 flex flex-col justify-end text-white">
-                  <span class="text-[10px] font-bold text-sky-400 uppercase">La Roche-Posay</span>
-                  <p class="text-xs font-semibold">Une peau plus saine chaque jour</p>
+                <!-- Preview Tile -->
+                <div id="media-preview-box" class="relative rounded-2xl border border-slate-200 bg-slate-900 p-4 flex flex-col justify-between text-white overflow-hidden min-h-[140px]">
+                  <div class="flex items-center justify-between">
+                    <span class="inline-block rounded-md bg-white/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-xs">Aperçu en direct</span>
+                    <button onclick="clearUploadedMedia(event)" class="text-slate-400 hover:text-white text-xs">✕ Retirer</button>
+                  </div>
+                  <div>
+                    <span id="preview-client-title" class="text-[11px] font-bold text-sky-400 uppercase">La Roche-Posay</span>
+                    <p id="preview-ad-title" class="text-xs font-semibold leading-tight text-slate-200">Une peau plus saine chaque jour</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Checkout Sidebar -->
+          <!-- Checkout & Real-time Calculator Sidebar -->
           <div class="col-span-12 lg:col-span-4">
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs sticky top-20 space-y-5">
               <h3 class="font-extrabold text-slate-900 text-base">Résumé de la campagne</h3>
 
+              <!-- Miniature Ad Card -->
               <div class="rounded-xl bg-gradient-to-r from-sky-100 to-emerald-50 p-3">
-                <span class="text-[10px] font-bold text-sky-700">LA ROCHE-POSAY</span>
-                <p class="text-xs font-bold text-slate-900">Une peau plus saine chaque jour</p>
+                <span id="mini-client-label" class="text-[10px] font-bold text-sky-700">LA ROCHE-POSAY</span>
+                <p id="mini-ad-label" class="text-xs font-bold text-slate-900">Une peau plus saine chaque jour</p>
                 <button class="mt-2 rounded-md bg-sky-600 px-2 py-0.5 text-[10px] font-bold text-white">Découvrir</button>
               </div>
 
+              <!-- Specs -->
               <div class="space-y-3 text-xs border-b border-slate-100 pb-4">
                 <div class="flex justify-between">
-                  <span class="text-slate-400">Format</span>
-                  <span id="summary-format" class="font-semibold text-slate-800">Image / Bannière</span>
+                  <span class="text-slate-400">Format :</span>
+                  <span id="side-sum-format" class="font-semibold text-slate-800">Image / Bannière</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-slate-400">Zone de diffusion</span>
-                  <span id="summary-zone" class="font-semibold text-slate-800">Alger</span>
+                  <span class="text-slate-400">Zone de diffusion :</span>
+                  <span id="side-sum-zone" class="font-semibold text-slate-800">Alger</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-slate-400">Nombre de pharmacies</span>
-                  <span id="summary-pharmacies" class="font-semibold text-slate-800">50</span>
+                  <span class="text-slate-400">Nombre de pharmacies :</span>
+                  <span id="side-sum-pharma" class="font-semibold text-slate-800">50</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-slate-400">Durée</span>
-                  <span class="font-semibold text-slate-800">1 mois</span>
+                  <span class="text-slate-400">Durée :</span>
+                  <span id="side-sum-duration" class="font-semibold text-slate-800">1 mois (30 jours)</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-slate-400">Fréquence</span>
-                  <span class="font-semibold text-slate-800">3 fois par heure</span>
+                  <span class="text-slate-400">Fréquence :</span>
+                  <span id="side-sum-freq" class="font-semibold text-slate-800">3 fois par heure</span>
                 </div>
               </div>
 
+              <!-- Price Breakdown -->
               <div class="space-y-2 text-xs">
                 <div class="flex justify-between font-bold text-slate-900">
                   <span>Détail des coûts</span>
-                  <span class="text-[11px] text-[#009668] cursor-pointer">Paramètres</span>
+                  <button onclick="showToast('Tarif CPM contractuel : 600 DA / 1000 diffusions')" class="text-[11px] text-[#009668] hover:underline">Paramètres</button>
                 </div>
                 <div class="flex justify-between text-slate-500">
                   <span>CPM (pour 1 000 affichages)</span>
@@ -536,11 +587,11 @@
                 </div>
                 <div class="flex justify-between text-slate-500">
                   <span>Nombre estimé d'affichages</span>
-                  <span id="summary-impressions" class="font-semibold text-slate-800">54 000</span>
+                  <span id="side-sum-impressions" class="font-semibold text-slate-800">54 000</span>
                 </div>
                 <div class="flex justify-between text-slate-500">
                   <span>Coût de diffusion</span>
-                  <span id="summary-diff-cost" class="font-semibold text-slate-800">32 400 DA</span>
+                  <span id="side-sum-diffcost" class="font-semibold text-slate-800">32 400 DA</span>
                 </div>
                 <div class="flex justify-between text-slate-500">
                   <span>Frais fixe</span>
@@ -548,12 +599,18 @@
                 </div>
               </div>
 
+              <!-- Total Card -->
               <div class="rounded-xl bg-emerald-50/60 p-4 flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-700">Total à payer</span>
-                <span id="summary-total" class="text-lg font-black text-[#009668]">34 400 DA</span>
+                <span id="side-sum-total" class="text-lg font-black text-[#009668]">34 400 DA</span>
               </div>
 
-              <button onclick="switchView('dashboard')" class="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009668] py-3 text-sm font-bold text-white shadow-lg shadow-emerald-700/25 hover:bg-[#00835b] transition">
+              <p class="text-[10px] text-slate-400 leading-tight">
+                Les affichages sont garantis et certifiés par la télémétrie des écrans en officines.
+              </p>
+
+              <!-- Main Submit / Payment CTA -->
+              <button onclick="executeCampaignPayment()" class="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009668] py-3 text-sm font-bold text-white shadow-lg shadow-emerald-700/25 hover:bg-[#00835b] transition">
                 <span>Valider et payer</span>
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
               </button>
@@ -564,12 +621,12 @@
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- 3. ADMIN DASHBOARD VIEW                    -->
-  <!-- ========================================== -->
-  <div id="view-dashboard" class="view-section hidden min-h-screen">
-    <div class="flex min-h-screen">
-      <!-- Dark Sidebar -->
+  <!-- ============================================================ -->
+  <!-- 3. ADMIN DASHBOARD VIEW                                      -->
+  <!-- ============================================================ -->
+  <div id="view-dashboard" class="view-panel hidden flex-1 flex flex-col">
+    <div class="flex flex-1">
+      <!-- Dark Admin Sidebar -->
       <aside class="w-64 shrink-0 bg-[#081726] text-slate-300 p-5 flex flex-col justify-between">
         <div class="space-y-6">
           <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('landing')">
@@ -583,79 +640,92 @@
           </div>
 
           <nav class="space-y-1 text-xs">
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl bg-white/10 px-3.5 py-2.5 font-semibold text-white">
+            <button onclick="switchView('dashboard')" class="w-full flex items-center gap-3 rounded-xl bg-white/10 px-3.5 py-2.5 font-semibold text-white text-left">
               <svg class="h-4 w-4 text-[#009668]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
               Tableau de bord
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white">
+            </button>
+            <button onclick="showToast('Gestion des 18 annonceurs partenaires')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
               Annonceurs
-            </a>
-            <a href="javascript:switchView('builder')" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white">
+            </button>
+            <button onclick="switchView('builder')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
               Campagnes
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white">
+            </button>
+            <button onclick="showToast('Réseau des 312 pharmacies sous contrat')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
               Pharmacies
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white">
+            </button>
+            <button onclick="showToast('Diagnostic réseau : 312 écrans connectés / 44 hors ligne')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
               Réseau / Écrans
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white">
+            </button>
+            <button onclick="showToast('Modération des médias et bannières publicitaires')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
               Contenus publicitaires
-            </a>
+            </button>
 
-            <!-- Submenu Tarification -->
+            <!-- Collapsible Tarification Submenu -->
             <div class="pt-2">
-              <div class="flex items-center justify-between px-3.5 py-2 text-slate-400 font-semibold cursor-pointer">
+              <button onclick="toggleAdminTarifsSubmenu()" class="w-full flex items-center justify-between px-3.5 py-2 text-slate-400 font-semibold hover:text-white transition text-left">
                 <span>Tarification</span>
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-              </div>
-              <div class="ml-8 space-y-1 border-l border-slate-700/60 pl-3">
-                <a href="javascript:void(0)" class="block py-1 text-[11px] text-slate-400 hover:text-white">CPM & Frais fixes</a>
-                <a href="javascript:void(0)" class="block py-1 text-[11px] text-slate-400 hover:text-white">Coefficients wilaya</a>
-                <a href="javascript:void(0)" class="block py-1 text-[11px] text-slate-400 hover:text-white">Coefficients région</a>
-                <a href="javascript:void(0)" class="block py-1 text-[11px] text-slate-400 hover:text-white">Formats & Durées</a>
+                <svg id="dash-tarifs-arrow" class="h-3.5 w-3.5 transform transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </button>
+              <div id="dash-tarifs-sub" class="ml-8 space-y-1 border-l border-slate-700/60 pl-3">
+                <button onclick="showToast('Paramétrage CPM : 600 DA / Frais fixes : 2 000 DA')" class="block py-1 text-[11px] text-slate-400 hover:text-white text-left">CPM & Frais fixes</button>
+                <button onclick="showToast('Coefficients wilaya : Alger x1.2, Oran x1.1')" class="block py-1 text-[11px] text-slate-400 hover:text-white text-left">Coefficients wilaya</button>
+                <button onclick="showToast('Coefficients région : Nord x1.0, Sud x0.8')" class="block py-1 text-[11px] text-slate-400 hover:text-white text-left">Coefficients région</button>
+                <button onclick="showToast('Grilles formats image standard vs vidéo 30s')" class="block py-1 text-[11px] text-slate-400 hover:text-white text-left">Formats & Durées</button>
               </div>
             </div>
 
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white">
+            <button onclick="showToast('Journal des encaissements : 486 000 DA')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
               Transactions
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white">
+            </button>
+            <button onclick="showToast('Rapports mensuels de diffusion exportés')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               Rapports
-            </a>
-            <a href="javascript:void(0)" class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white">
+            </button>
+            <button onclick="showToast('Gestion des droits : 12 Administrateurs enregistrés')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+              Utilisateurs
+            </button>
+            <button onclick="showToast('Paramètres généraux de la plateforme')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
               Paramètres
-            </a>
+            </button>
+            <button onclick="showToast('Affichage des logs système en temps réel')" class="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium hover:bg-white/5 transition text-slate-400 hover:text-white text-left">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              Journal d'activité
+            </button>
           </nav>
         </div>
 
         <div class="rounded-2xl border border-slate-800 bg-[#0d2136] p-4 text-center">
           <h4 class="text-xs font-bold text-white">Besoin d'aide ?</h4>
           <p class="mt-0.5 text-[10px] text-slate-400">Consultez la documentation technique.</p>
-          <button class="mt-3 w-full rounded-xl border border-slate-700 bg-white/5 py-1.5 text-xs font-semibold text-white hover:bg-white/10 transition">
+          <button onclick="openContactModal()" class="mt-3 w-full rounded-xl border border-slate-700 bg-white/5 py-1.5 text-xs font-semibold text-white hover:bg-white/10 transition">
             Nous contacter
           </button>
         </div>
       </aside>
 
-      <!-- Main Dash Content -->
+      <!-- Dashboard Main -->
       <div class="flex-1 flex flex-col">
         <!-- Top Nav -->
         <header class="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-8">
           <div class="relative w-96">
-            <input type="text" placeholder="Rechercher une campagne, un annonceur, une pharmacie..." class="w-full rounded-xl border border-slate-200 bg-slate-50 pl-4 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-[#009668] focus:outline-hidden" />
+            <svg class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input id="dash-search-input" onkeyup="filterCampaignTable(this.value)" type="text" placeholder="Rechercher une campagne, un annonceur, une pharmacie..." class="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-[#009668] focus:outline-hidden" />
           </div>
 
           <div class="flex items-center gap-4">
-            <div class="flex items-center gap-3">
+            <button onclick="showToast('3 alertes : 5 écrans hors ligne, 1 campagne en attente')" class="relative text-slate-500 hover:text-slate-700">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+              <span class="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500"></span>
+            </button>
+            <div class="flex items-center gap-3 cursor-pointer" onclick="showToast('Session Administrateur active : ID #001')">
               <div class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-800">AD</div>
               <div class="text-left text-xs">
                 <div class="font-bold text-slate-900 leading-none">Admin</div>
@@ -665,50 +735,51 @@
           </div>
         </header>
 
-        <!-- Main Body -->
+        <!-- Dashboard Content Body -->
         <main class="p-8 space-y-6 max-w-7xl mx-auto w-full">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 class="text-2xl font-black text-slate-900">Tableau de bord</h1>
               <p class="text-xs text-slate-500 mt-0.5">Vue d'ensemble de la plateforme OFFIADS.</p>
             </div>
-            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs">
+            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs cursor-pointer" onclick="showToast('Sélecteur de calendrier : Période Septembre 2026')">
               <span>01/09/2026 - 30/09/2026</span>
+              <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </div>
           </div>
 
-          <!-- KPI Cards Grid -->
+          <!-- KPI Cards Grid (5 cols) -->
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
               <span class="text-[11px] font-semibold text-slate-400">Campagnes actives</span>
               <div class="text-xl font-extrabold text-slate-900 mt-0.5">24</div>
-              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +20% sur la période précédente</div>
+              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +20% sur la période</div>
             </div>
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
               <span class="text-[11px] font-semibold text-slate-400">Annonceurs</span>
               <div class="text-xl font-extrabold text-slate-900 mt-0.5">18</div>
-              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +12% sur la période précédente</div>
+              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +12% sur la période</div>
             </div>
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
               <span class="text-[11px] font-semibold text-slate-400">Pharmacies diffusant</span>
               <div class="text-xl font-extrabold text-slate-900 mt-0.5">312</div>
-              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +8% sur la période précédente</div>
+              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +8% sur la période</div>
             </div>
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
               <span class="text-[11px] font-semibold text-slate-400">Nombre d'affichages</span>
               <div class="text-xl font-extrabold text-slate-900 mt-0.5">542 300</div>
-              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +35% sur la période précédente</div>
+              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +35% sur la période</div>
             </div>
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
               <span class="text-[11px] font-semibold text-slate-400">Chiffre d'affaires</span>
               <div class="text-xl font-extrabold text-slate-900 mt-0.5">486 000 DA</div>
-              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +28% sur la période précédente</div>
+              <div class="mt-1 text-[10px] font-semibold text-[#009668]">↑ +28% sur la période</div>
             </div>
           </div>
 
           <!-- Charts Row -->
           <div class="grid lg:grid-cols-12 gap-6">
-            <!-- Impressions SVG Line Chart -->
+            <!-- Impressions Chart -->
             <div class="lg:col-span-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-sm font-bold text-slate-900">Évolution des affichages</h3>
@@ -784,18 +855,21 @@
             </div>
           </div>
 
-          <!-- Data Table -->
+          <!-- Tabbed Interactive Data Table -->
           <div class="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
             <div class="flex items-center justify-between border-b border-slate-200 px-6 pt-4">
               <div class="flex gap-6">
-                <button class="pb-3 text-xs font-bold border-b-2 border-[#009668] text-[#009668]">Campagnes récentes</button>
-                <button class="pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500">Annonceurs récents</button>
-                <button class="pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500">Pharmacies</button>
+                <button onclick="switchDashTableTab('campaigns')" id="tab-btn-camps" class="pb-3 text-xs font-bold border-b-2 border-[#009668] text-[#009668] transition">Campagnes récentes</button>
+                <button onclick="switchDashTableTab('adv')" id="tab-btn-adv" class="pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition">Annonceurs récents</button>
+                <button onclick="switchDashTableTab('pharma')" id="tab-btn-pharma" class="pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition">Pharmacies</button>
               </div>
-              <a href="javascript:void(0)" class="pb-3 text-xs font-bold text-[#009668] hover:underline">Voir toutes les campagnes →</a>
+              <button onclick="showToast('Export de la liste intégrale au format CSV / Excel')" class="pb-3 text-xs font-bold text-[#009668] hover:underline flex items-center gap-1">
+                Voir toutes les campagnes →
+              </button>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- Campaigns Table Content -->
+            <div id="table-camps-wrap" class="overflow-x-auto">
               <table class="w-full text-left text-xs">
                 <thead class="bg-slate-50 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                   <tr>
@@ -808,11 +882,11 @@
                     <th class="px-6 py-3">Période</th>
                     <th class="px-6 py-3">Budget</th>
                     <th class="px-6 py-3">Statut</th>
-                    <th class="px-6 py-3">Créée le</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
-                  <tr class="hover:bg-slate-50/60 transition">
+                <tbody id="dash-camps-tbody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                  <tr class="camp-row hover:bg-slate-50/60 transition">
                     <td class="px-6 py-4 font-bold text-slate-400">1</td>
                     <td class="px-6 py-4 font-bold text-slate-900">La Roche-Posay - Soins visage</td>
                     <td class="px-6 py-4 text-slate-600">La Roche-Posay</td>
@@ -822,9 +896,12 @@
                     <td class="px-6 py-4 text-slate-500">01/09 - 30/09</td>
                     <td class="px-6 py-4 font-bold text-slate-900">120 000 DA</td>
                     <td class="px-6 py-4"><span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">Active</span></td>
-                    <td class="px-6 py-4 text-slate-400 text-[11px]">01/09/2026</td>
+                    <td class="px-6 py-4 text-right">
+                      <button onclick="previewRowCamp('La Roche-Posay - Soins visage')" class="text-slate-400 hover:text-slate-700 px-1">👁️</button>
+                      <button onclick="editRowCamp('La Roche-Posay - Soins visage')" class="text-slate-400 hover:text-slate-700 px-1">✏️</button>
+                    </td>
                   </tr>
-                  <tr class="hover:bg-slate-50/60 transition">
+                  <tr class="camp-row hover:bg-slate-50/60 transition">
                     <td class="px-6 py-4 font-bold text-slate-400">2</td>
                     <td class="px-6 py-4 font-bold text-slate-900">CeraVe - Hydratation</td>
                     <td class="px-6 py-4 text-slate-600">CeraVe</td>
@@ -834,9 +911,12 @@
                     <td class="px-6 py-4 text-slate-500">15/09 - 15/10</td>
                     <td class="px-6 py-4 font-bold text-slate-900">85 000 DA</td>
                     <td class="px-6 py-4"><span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">Active</span></td>
-                    <td class="px-6 py-4 text-slate-400 text-[11px]">15/09/2026</td>
+                    <td class="px-6 py-4 text-right">
+                      <button onclick="previewRowCamp('CeraVe - Hydratation')" class="text-slate-400 hover:text-slate-700 px-1">👁️</button>
+                      <button onclick="editRowCamp('CeraVe - Hydratation')" class="text-slate-400 hover:text-slate-700 px-1">✏️</button>
+                    </td>
                   </tr>
-                  <tr class="hover:bg-slate-50/60 transition">
+                  <tr class="camp-row hover:bg-slate-50/60 transition">
                     <td class="px-6 py-4 font-bold text-slate-400">3</td>
                     <td class="px-6 py-4 font-bold text-slate-900">Bioderma - Peaux sensibles</td>
                     <td class="px-6 py-4 text-slate-600">Bioderma</td>
@@ -846,10 +926,104 @@
                     <td class="px-6 py-4 text-slate-500">10/09 - 10/10</td>
                     <td class="px-6 py-4 font-bold text-slate-900">70 000 DA</td>
                     <td class="px-6 py-4"><span class="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">En attente</span></td>
-                    <td class="px-6 py-4 text-slate-400 text-[11px]">08/09/2026</td>
+                    <td class="px-6 py-4 text-right">
+                      <button onclick="previewRowCamp('Bioderma - Peaux sensibles')" class="text-slate-400 hover:text-slate-700 px-1">👁️</button>
+                      <button onclick="editRowCamp('Bioderma - Peaux sensibles')" class="text-slate-400 hover:text-slate-700 px-1">✏️</button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <!-- Advertisers Tab Placeholder -->
+            <div id="table-adv-wrap" class="hidden p-6 text-center text-xs text-slate-500">
+              <p class="font-bold text-slate-800">18 annonceurs sous contrat actif</p>
+              <p class="mt-1">Laboratoires L'Oréal, Pierre Fabre, PharmaPlus Algérie, Biocare Santé, etc.</p>
+            </div>
+
+            <!-- Pharmacies Tab Placeholder -->
+            <div id="table-pharma-wrap" class="hidden p-6 text-center text-xs text-slate-500">
+              <p class="font-bold text-slate-800">312 pharmacies équipées d'écrans OFFIADS certifiés</p>
+              <p class="mt-1">Taux de disponibilité moyen des boîtiers connectés : 98.4%</p>
+            </div>
+          </div>
+
+          <!-- Bottom Action Widgets -->
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900">Inventaire des écrans</h3>
+                <div class="mt-4 flex items-center gap-4">
+                  <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-[#009668]">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+                  </div>
+                  <div>
+                    <div class="text-2xl font-black text-slate-900">312</div>
+                    <div class="text-[11px] text-slate-400 font-medium">écrans actifs</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-6 space-y-2 border-t border-slate-100 pt-4 text-xs">
+                <div class="flex justify-between"><span class="text-slate-400">Total écrans</span><span class="font-bold text-slate-800">356</span></div>
+                <div class="flex justify-between"><span class="text-[#009668]">En ligne</span><span class="font-bold text-[#009668]">312</span></div>
+                <div class="flex justify-between"><span class="text-red-500">Hors ligne</span><span class="font-bold text-red-500">44</span></div>
+              </div>
+            </div>
+
+            <!-- System Alerts -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center gap-2">
+                    <svg class="h-4 w-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    <h3 class="text-sm font-bold text-slate-900">Alertes système</h3>
+                    <span class="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600">3</span>
+                  </div>
+                  <button onclick="showToast('Toutes les alertes sont acquittées')" class="text-[11px] font-bold text-[#009668] hover:underline">Voir tout</button>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                  <div class="flex items-start justify-between cursor-pointer" onclick="showToast('Alerte écrans : Déconnexion réseau 4G Wilaya de Tipaza')">
+                    <span class="flex items-center gap-2 text-slate-700"><span class="h-2 w-2 rounded-full bg-red-500"></span> 5 écrans hors ligne</span>
+                    <span class="text-[10px] text-slate-400">Il y a 2h</span>
+                  </div>
+                  <div class="flex items-start justify-between cursor-pointer" onclick="showToast('Validation requise pour la campagne Bioderma')">
+                    <span class="flex items-center gap-2 text-slate-700"><span class="h-2 w-2 rounded-full bg-amber-500"></span> 1 campagne en attente</span>
+                    <span class="text-[10px] text-slate-400">Il y a 4h</span>
+                  </div>
+                  <div class="flex items-start justify-between cursor-pointer" onclick="showToast('Firmware v2.4 prêt pour déploiement OTA')">
+                    <span class="flex items-center gap-2 text-slate-700"><span class="h-2 w-2 rounded-full bg-sky-500"></span> Mise à jour disponible</span>
+                    <span class="text-[10px] text-slate-400">Il y a 1j</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 pt-4 border-t border-slate-100">
+                <span class="text-[11px] text-slate-400">Sondes télémétriques opérationnelles.</span>
+              </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 mb-4">Liens rapides</h3>
+                <div class="space-y-2">
+                  <button onclick="showToast('Module Tarification ouvert')" class="w-full flex items-center justify-between rounded-xl border border-slate-100 p-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition text-left">
+                    <span>Gérer la tarification</span>
+                    <span>→</span>
+                  </button>
+                  <button onclick="showToast('Assistant d\'enrôlement d\'une nouvelle pharmacie lancé')" class="w-full flex items-center justify-between rounded-xl border border-slate-100 p-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition text-left">
+                    <span>Ajouter une pharmacie</span>
+                    <span>→</span>
+                  </button>
+                  <button onclick="switchView('builder')" class="w-full flex items-center justify-between rounded-xl border border-slate-100 p-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition text-left">
+                    <span>Publier un nouveau contenu</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              </div>
+              <div class="mt-4 pt-4 border-t border-slate-100">
+                <span class="text-[11px] text-[#009668] font-semibold cursor-pointer" onclick="showToast('Génération du rapport d\'audit')">Télécharger l'audit d'activité</span>
+              </div>
             </div>
           </div>
         </main>
@@ -857,68 +1031,387 @@
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- JAVASCRIPT LOGIC                           -->
-  <!-- ========================================== -->
+  <!-- ============================================================ -->
+  <!-- 4. MODALS (VIDEO DEMO, CONTACT, RECHARGE, PAYMENT SUCCESS)   -->
+  <!-- ============================================================ -->
+
+  <!-- Video Demo Modal -->
+  <div id="modal-video-demo" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-slate-900 text-sm">Démonstration OFFIADS en officine</h3>
+        <button onclick="closeVideoDemoModal()" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+      </div>
+      <div class="aspect-video bg-slate-900 rounded-xl flex items-center justify-center text-white text-xs">
+        <div class="text-center space-y-2">
+          <div class="h-12 w-12 rounded-full bg-[#009668] mx-auto flex items-center justify-center text-xl">▶</div>
+          <p>Vidéo de présentation du boîtier connecté en pharmacie</p>
+        </div>
+      </div>
+      <button onclick="closeVideoDemoModal()" class="w-full rounded-xl bg-slate-100 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition">
+        Fermer
+      </button>
+    </div>
+  </div>
+
+  <!-- Contact Modal -->
+  <div id="modal-contact" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-slate-900 text-sm">Contacter l'équipe commerciale OFFIADS</h3>
+        <button onclick="closeContactModal()" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Votre Nom / Entreprise</label>
+          <input id="contact-name" type="text" placeholder="Ex: Laboratoire Dermavital" class="w-full rounded-xl border border-slate-200 p-2.5 focus:border-[#009668] focus:outline-hidden" />
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Email professionnel</label>
+          <input id="contact-email" type="email" placeholder="contact@laboratoire.dz" class="w-full rounded-xl border border-slate-200 p-2.5 focus:border-[#009668] focus:outline-hidden" />
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Message</label>
+          <textarea id="contact-msg" rows="3" placeholder="Parlez-nous de vos besoins de diffusion..." class="w-full rounded-xl border border-slate-200 p-2.5 focus:border-[#009668] focus:outline-hidden"></textarea>
+        </div>
+      </div>
+      <button onclick="submitContactForm()" class="w-full rounded-xl bg-[#009668] py-2.5 text-xs font-semibold text-white hover:bg-[#00835b] transition">
+        Envoyer la demande
+      </button>
+    </div>
+  </div>
+
+  <!-- Recharge Balance Modal -->
+  <div id="modal-recharge" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-slate-900 text-sm">Recharger votre portefeuille</h3>
+        <button onclick="closeRechargeModal()" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+      </div>
+      <p class="text-xs text-slate-500">Choisissez le montant à créditer sur votre compte annonceur :</p>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <button onclick="selectRechargeAmt(50000)" class="border border-slate-200 rounded-xl p-2.5 font-bold hover:border-[#009668] hover:bg-emerald-50/30">50 000 DA</button>
+        <button onclick="selectRechargeAmt(100000)" class="border border-slate-200 rounded-xl p-2.5 font-bold hover:border-[#009668] hover:bg-emerald-50/30">100 000 DA</button>
+        <button onclick="selectRechargeAmt(200000)" class="border border-slate-200 rounded-xl p-2.5 font-bold hover:border-[#009668] hover:bg-emerald-50/30">200 000 DA</button>
+        <button onclick="selectRechargeAmt(500000)" class="border border-slate-200 rounded-xl p-2.5 font-bold hover:border-[#009668] hover:bg-emerald-50/30">500 000 DA</button>
+      </div>
+      <div class="text-xs">
+        <label class="block font-medium text-slate-700 mb-1">Autre montant (DA)</label>
+        <input id="recharge-custom-amt" type="number" placeholder="Ex: 75000" class="w-full rounded-xl border border-slate-200 p-2.5 focus:border-[#009668] focus:outline-hidden" />
+      </div>
+      <button onclick="confirmRecharge()" class="w-full rounded-xl bg-[#009668] py-2.5 text-xs font-semibold text-white hover:bg-[#00835b] transition">
+        Payer par Carte CIB / Edahabia
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-box" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ============================================================ -->
+  <!-- 5. REAL JAVASCRIPT APP LOGIC                                 -->
+  <!-- ============================================================ -->
   <script>
+    // State
+    const state = {
+      userBalance: 120000,
+      format: 'image',
+      targetMode: 'region',
+      wilaya: 'Alger',
+      pharmacies: 50,
+      durationMultiplier: 1, // 1 month
+      durationText: '1 mois (30 jours)',
+      frequencyPerHour: 3,
+      cpm: 600,
+      fixedFee: 2000
+    };
+
+    // View Navigation Switcher
     function switchView(viewName) {
-      // Toggle Views
-      document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-      document.getElementById('view-' + viewName).classList.remove('hidden');
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+      const target = document.getElementById('view-' + viewName);
+      if (target) target.classList.remove('hidden');
 
-      // Update button styles
-      document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.classList.remove('bg-white', 'text-[#009668]', 'shadow-xs');
-        btn.classList.add('text-slate-600');
+      // Update switcher buttons
+      ['landing', 'builder', 'dashboard'].forEach(name => {
+        const btn = document.getElementById('nav-btn-' + name);
+        if (name === viewName) {
+          btn.className = 'rounded-lg px-3.5 py-1.5 text-xs font-semibold bg-white text-[#009668] shadow-xs transition';
+        } else {
+          btn.className = 'rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition';
+        }
       });
-      const activeBtn = document.getElementById('btn-' + viewName);
-      activeBtn.classList.add('bg-white', 'text-[#009668]', 'shadow-xs');
-      activeBtn.classList.remove('text-slate-600');
-
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function selectFormat(format) {
-      const cardImg = document.getElementById('card-format-image');
-      const cardVid = document.getElementById('card-format-video');
-      const checkImg = document.getElementById('check-format-image');
-      const checkVid = document.getElementById('check-format-video');
-      const summaryFormat = document.getElementById('summary-format');
+    // Step 1: Format Switch
+    function setAdFormat(type) {
+      state.format = type;
+      const btnImg = document.getElementById('btn-format-img');
+      const btnVid = document.getElementById('btn-format-vid');
+      const checkImg = document.getElementById('badge-check-img');
+      const checkVid = document.getElementById('badge-check-vid');
+      const sideFormat = document.getElementById('side-sum-format');
 
-      if (format === 'image') {
-        cardImg.className = "cursor-pointer flex items-center justify-between rounded-xl border-2 border-[#009668] bg-emerald-50/20 p-4 transition";
-        cardVid.className = "cursor-pointer flex items-center justify-between rounded-xl border-2 border-slate-200 p-4 transition hover:border-slate-300";
+      if (type === 'image') {
+        btnImg.className = "cursor-pointer flex items-center justify-between rounded-xl border-2 border-[#009668] bg-emerald-50/20 p-4 transition";
+        btnVid.className = "cursor-pointer flex items-center justify-between rounded-xl border-2 border-slate-200 p-4 transition hover:border-slate-300";
         checkImg.classList.remove('hidden');
         checkVid.classList.add('hidden');
-        summaryFormat.textContent = 'Image / Bannière';
+        sideFormat.textContent = 'Image / Bannière';
       } else {
-        cardVid.className = "cursor-pointer flex items-center justify-between rounded-xl border-2 border-[#009668] bg-emerald-50/20 p-4 transition";
-        cardImg.className = "cursor-pointer flex items-center justify-between rounded-xl border-2 border-slate-200 p-4 transition hover:border-slate-300";
+        btnVid.className = "cursor-pointer flex items-center justify-between rounded-xl border-2 border-[#009668] bg-emerald-50/20 p-4 transition";
+        btnImg.className = "cursor-pointer flex items-center justify-between rounded-xl border-2 border-slate-200 p-4 transition hover:border-slate-300";
         checkVid.classList.remove('hidden');
         checkImg.classList.add('hidden');
-        summaryFormat.textContent = 'Vidéo';
+        sideFormat.textContent = 'Vidéo';
+      }
+      recalcPricing();
+    }
+
+    // Step 2: Zone & Wilaya
+    function updateWilayaChoice(val) {
+      state.wilaya = val;
+      document.getElementById('zone-badge-label').innerText = val;
+      document.getElementById('side-sum-zone').innerText = val;
+      showToast(`Wilaya de diffusion mise à jour : ${val}`);
+    }
+
+    function changeTargetMode(mode) {
+      state.targetMode = mode;
+      const zoneLabel = document.getElementById('side-sum-zone');
+      if (mode === 'all') {
+        zoneLabel.innerText = "Toute l'Algérie (58 Wilayas)";
+        document.getElementById('zone-badge-label').innerText = "National";
+      } else {
+        zoneLabel.innerText = state.wilaya;
+        document.getElementById('zone-badge-label').innerText = state.wilaya;
       }
     }
 
-    function updateWilaya(val) {
-      document.getElementById('badge-wilaya').innerText = val;
-      document.getElementById('summary-zone').innerText = val;
+    // Step 4: Duration & Frequency
+    function updateDurationChoice(val) {
+      state.durationMultiplier = parseFloat(val);
+      const textMap = {
+        '1': '1 mois (30 jours)',
+        '0.5': '2 semaines (14 jours)',
+        '2': '2 mois (60 jours)',
+        '3': '3 mois (90 jours)'
+      };
+      state.durationText = textMap[val] || '1 mois';
+      document.getElementById('side-sum-duration').innerText = state.durationText;
+      recalcPricing();
     }
 
-    function updateCalculator(pharmacies) {
-      const count = parseInt(pharmacies, 10);
-      document.getElementById('slider-val').innerText = count;
-      document.getElementById('summary-pharmacies').innerText = count;
-
-      const impressions = count * 36 * 30; // 36 diffusions/jour * 30 jours
-      const costDiffusion = Math.round((impressions / 1000) * 600);
-      const fixedFee = 2000;
-      const total = costDiffusion + fixedFee;
-
-      document.getElementById('summary-impressions').innerText = impressions.toLocaleString();
-      document.getElementById('summary-diff-cost').innerText = costDiffusion.toLocaleString() + ' DA';
-      document.getElementById('summary-total').innerText = total.toLocaleString() + ' DA';
+    function updateFreqChoice(val) {
+      state.frequencyPerHour = parseInt(val, 10);
+      document.getElementById('side-sum-freq').innerText = `${val} fois par heure`;
+      recalcPricing();
     }
+
+    // Dynamic Pricing Engine
+    function recalcPricing(sliderVal) {
+      if (sliderVal) {
+        state.pharmacies = parseInt(sliderVal, 10);
+      }
+      document.getElementById('display-pharma-num').innerText = state.pharmacies;
+      document.getElementById('side-sum-pharma').innerText = state.pharmacies;
+
+      // Impressions formula: Pharmacies * (Freq * 12 hours/day) * (30 days * durationMultiplier)
+      const dailyPerPharma = state.frequencyPerHour * 12;
+      const totalDays = 30 * state.durationMultiplier;
+      const estimatedImpressions = Math.round(state.pharmacies * dailyPerPharma * totalDays);
+
+      // Cost formula: CPM + Fixed fee (video adds +15% creative surcharge)
+      const formatMultiplier = state.format === 'video' ? 1.15 : 1.0;
+      const costDiffusion = Math.round((estimatedImpressions / 1000) * state.cpm * formatMultiplier);
+      const totalCost = costDiffusion + state.fixedFee;
+
+      // Update DOM
+      document.getElementById('side-sum-impressions').innerText = estimatedImpressions.toLocaleString('fr-FR');
+      document.getElementById('side-sum-diffcost').innerText = costDiffusion.toLocaleString('fr-FR') + ' DA';
+      document.getElementById('side-sum-total').innerText = totalCost.toLocaleString('fr-FR') + ' DA';
+    }
+
+    // File Upload Handler & Live Preview
+    function handleFileSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      document.getElementById('upload-main-text').innerText = file.name;
+      document.getElementById('preview-ad-title').innerText = file.name;
+      document.getElementById('mini-ad-label').innerText = file.name;
+
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const previewBox = document.getElementById('media-preview-box');
+          previewBox.style.backgroundImage = `url('${e.target.result}')`;
+          previewBox.style.backgroundSize = 'cover';
+          previewBox.style.backgroundPosition = 'center';
+        };
+        reader.readAsDataURL(file);
+      }
+      showToast(`Fichier média chargé : ${file.name}`);
+    }
+
+    function clearUploadedMedia(e) {
+      e.stopPropagation();
+      document.getElementById('file-upload-input').value = '';
+      document.getElementById('upload-main-text').innerText = 'Glissez votre fichier ici';
+      document.getElementById('preview-ad-title').innerText = 'Une peau plus saine chaque jour';
+      document.getElementById('mini-ad-label').innerText = 'Une peau plus saine chaque jour';
+      const previewBox = document.getElementById('media-preview-box');
+      previewBox.style.backgroundImage = '';
+      showToast('Visuel retiré.');
+    }
+
+    // Execute Campaign Payment
+    function executeCampaignPayment() {
+      const currentTotal = parseInt(document.getElementById('side-sum-total').innerText.replace(/\s/g, '').replace('DA', ''), 10);
+      
+      if (state.userBalance < currentTotal) {
+        showToast(`Solde insuffisant (${state.userBalance.toLocaleString()} DA). Veuillez recharger votre portefeuille.`);
+        openRechargeModal();
+        return;
+      }
+
+      state.userBalance -= currentTotal;
+      document.getElementById('user-balance-display').innerText = state.userBalance.toLocaleString('fr-FR') + ' DA';
+
+      // Inject into the Dashboard table as active campaign #1
+      const tbody = document.getElementById('dash-camps-tbody');
+      const newRow = document.createElement('tr');
+      newRow.className = "camp-row hover:bg-slate-50/60 transition bg-emerald-50/30";
+      newRow.innerHTML = `
+        <td class="px-6 py-4 font-bold text-slate-400">0</td>
+        <td class="px-6 py-4 font-bold text-slate-900">${document.getElementById('mini-ad-label').innerText}</td>
+        <td class="px-6 py-4 text-slate-600">Annonceur Pro</td>
+        <td class="px-6 py-4 font-semibold ${state.format === 'video' ? 'text-sky-600' : 'text-[#009668]'}">${state.format === 'video' ? 'Vidéo' : 'Image'}</td>
+        <td class="px-6 py-4">${state.wilaya}</td>
+        <td class="px-6 py-4 font-semibold">${state.pharmacies}</td>
+        <td class="px-6 py-4 text-slate-500">Immédiat (30j)</td>
+        <td class="px-6 py-4 font-bold text-slate-900">${currentTotal.toLocaleString('fr-FR')} DA</td>
+        <td class="px-6 py-4"><span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">Lancée</span></td>
+        <td class="px-6 py-4 text-right">
+          <button onclick="previewRowCamp('Nouvelle Campagne')" class="text-slate-400 hover:text-slate-700 px-1">👁️</button>
+        </td>
+      `;
+      tbody.prepend(newRow);
+
+      showToast(`Succès ! Campagne validée et payée (${currentTotal.toLocaleString('fr-FR')} DA).`);
+      setTimeout(() => switchView('dashboard'), 900);
+    }
+
+    // Dashboard Table Tab Switcher
+    function switchDashTableTab(tab) {
+      document.getElementById('table-camps-wrap').classList.add('hidden');
+      document.getElementById('table-adv-wrap').classList.add('hidden');
+      document.getElementById('table-pharma-wrap').classList.add('hidden');
+
+      ['camps', 'adv', 'pharma'].forEach(t => {
+        const btn = document.getElementById('tab-btn-' + t);
+        btn.className = 'pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition';
+      });
+
+      if (tab === 'campaigns') {
+        document.getElementById('table-camps-wrap').classList.remove('hidden');
+        document.getElementById('tab-btn-camps').className = 'pb-3 text-xs font-bold border-b-2 border-[#009668] text-[#009668] transition';
+      } else if (tab === 'adv') {
+        document.getElementById('table-adv-wrap').classList.remove('hidden');
+        document.getElementById('tab-btn-adv').className = 'pb-3 text-xs font-bold border-b-2 border-[#009668] text-[#009668] transition';
+      } else {
+        document.getElementById('table-pharma-wrap').classList.remove('hidden');
+        document.getElementById('tab-btn-pharma').className = 'pb-3 text-xs font-bold border-b-2 border-[#009668] text-[#009668] transition';
+      }
+    }
+
+    // Live search filter in dashboard
+    function filterCampaignTable(query) {
+      const q = query.toLowerCase();
+      document.querySelectorAll('.camp-row').forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+
+    function previewRowCamp(name) {
+      showToast(`Aperçu de la télémétrie pour : ${name}`);
+    }
+
+    function editRowCamp(name) {
+      showToast(`Édition des paramètres de diffusion pour : ${name}`);
+    }
+
+    function toggleAdminTarifsSubmenu() {
+      const sub = document.getElementById('dash-tarifs-sub');
+      const arrow = document.getElementById('dash-tarifs-arrow');
+      sub.classList.toggle('hidden');
+      arrow.classList.toggle('rotate-180');
+    }
+
+    // Language Dropdown
+    function toggleLangDropdown() {
+      document.getElementById('dropdown-lang').classList.toggle('hidden');
+    }
+
+    function changeLang(lang) {
+      document.getElementById('current-lang').innerText = lang;
+      document.getElementById('dropdown-lang').classList.add('hidden');
+      showToast(`Langue sélectionnée : ${lang}`);
+    }
+
+    // Modal Helpers
+    function openVideoDemoModal() { document.getElementById('modal-video-demo').classList.remove('hidden'); }
+    function closeVideoDemoModal() { document.getElementById('modal-video-demo').classList.add('hidden'); }
+
+    function openContactModal() { document.getElementById('modal-contact').classList.remove('hidden'); }
+    function closeContactModal() { document.getElementById('modal-contact').classList.add('hidden'); }
+
+    function submitContactForm() {
+      const name = document.getElementById('contact-name').value;
+      if (!name) { alert('Veuillez indiquer votre nom.'); return; }
+      closeContactModal();
+      showToast(`Merci ${name}, votre message a bien été envoyé !`);
+    }
+
+    function openRechargeModal() { document.getElementById('modal-recharge').classList.remove('hidden'); }
+    function closeRechargeModal() { document.getElementById('modal-recharge').classList.add('hidden'); }
+
+    function selectRechargeAmt(amount) {
+      state.userBalance += amount;
+      document.getElementById('user-balance-display').innerText = state.userBalance.toLocaleString('fr-FR') + ' DA';
+      closeRechargeModal();
+      showToast(`Portefeuille rechargé avec succès (+${amount.toLocaleString('fr-FR')} DA).`);
+    }
+
+    function confirmRecharge() {
+      const custom = parseInt(document.getElementById('recharge-custom-amt').value, 10);
+      if (custom && custom > 0) {
+        selectRechargeAmt(custom);
+      } else {
+        alert('Veuillez saisir un montant valide.');
+      }
+    }
+
+    // Toast Notification System
+    function showToast(msg) {
+      const container = document.getElementById('toast-box');
+      const toast = document.createElement('div');
+      toast.className = 'animate-toast pointer-events-auto flex items-center gap-2 rounded-xl bg-slate-900/95 text-white px-4 py-2.5 text-xs shadow-xl backdrop-blur-md border border-slate-700/50';
+      toast.innerHTML = `<span class="h-2 w-2 rounded-full bg-[#009668]"></span><span>${msg}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Initialize calculations on boot
+    window.addEventListener('DOMContentLoaded', () => {
+      recalcPricing();
+    });
   </script>
 </body>
 </html>
