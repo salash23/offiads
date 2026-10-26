@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — OFFIADS</title>
+<link rel="icon" href="assets/symbol.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>body{font-family:'Inter',system-ui,sans-serif}</style>
+</head>
+<body class="min-h-screen bg-[#F4F7FA] text-slate-800 antialiased">
+<div class="grid min-h-screen lg:grid-cols-2">
+  <section class="relative hidden overflow-hidden bg-gradient-to-br from-[#081726] via-[#0e2439] to-[#009668] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+    <a href="index.html" class="inline-block rounded-xl bg-white px-4 py-2"><img src="assets/logo.png" alt="OFFIADS" class="h-8"></a>
+    <div>
+      <h1 class="text-4xl font-extrabold leading-tight">Touchez les pharmaciens.<br>Développez votre marque.</h1>
+      <p class="mt-4 max-w-md text-emerald-50/90">Créez vos campagnes, ciblez par wilaya ou région et suivez vos résultats en temps réel dans les logiciels de pharmacie partenaires.</p>
+    </div>
+    <p class="text-xs text-emerald-50/70">© OFFIADS — La publicité au cœur des pharmacies</p>
+  </section>
+  <section class="flex items-center justify-center p-6">
+    <div class="w-full max-w-md">
+      <a href="index.html" class="mb-6 inline-block lg:hidden"><img src="assets/logo.png" alt="OFFIADS" class="h-9"></a>
+      <div class="mb-6 grid grid-cols-2 rounded-xl bg-slate-200/70 p-1 text-sm font-semibold">
+        <button id="tab-login" type="button" onclick="setMode('login')" class="rounded-lg px-3 py-2">Connexion</button>
+        <button id="tab-reg" type="button" onclick="setMode('register')" class="rounded-lg px-3 py-2">Créer un compte</button>
+      </div>
+
+      <form id="f-login" class="space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm" onsubmit="return doLogin(event)">
+        <h2 class="text-xl font-extrabold text-[#081726]">Bienvenue</h2>
+        <div><label class="mb-1 block text-xs font-semibold text-slate-600" for="l-email">E-mail</label>
+          <input id="l-email" type="email" required autocomplete="username" placeholder="vous@entreprise.dz" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[#009668] focus:outline-none focus:ring-2 focus:ring-[#009668]/20"></div>
+        <div><label class="mb-1 block text-xs font-semibold text-slate-600" for="l-pw">Mot de passe</label>
+          <div class="relative"><input id="l-pw" type="password" required autocomplete="current-password" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-16 text-sm focus:border-[#009668] focus:outline-none focus:ring-2 focus:ring-[#009668]/20">
+          <button type="button" onclick="togglePw('l-pw',this)" class="absolute right-3 top-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800">Afficher</button></div></div>
+        <div class="text-right"><button type="button" onclick="forgot()" class="text-xs font-semibold text-[#009668] hover:underline">Mot de passe oublié ?</button></div>
+        <p id="l-err" class="hidden rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700"></p>
+        <button id="l-btn" type="submit" class="w-full rounded-xl bg-[#009668] py-2.5 text-sm font-semibold text-white hover:bg-[#00835b] disabled:opacity-50">Se connecter</button>
+        <div id="demo" class="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+          <b class="text-slate-800">Comptes de démonstration</b> (mode local)
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button type="button" onclick="fillDemo('demo@offiads.dz','Demo@2026')" class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-semibold hover:bg-slate-100">Annonceur</button>
+            <button type="button" onclick="fillDemo('admin@offiads.dz','Admin@2026')" class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-semibold hover:bg-slate-100">Administrateur</button>
+          </div>
+        </div>
+      </form>
+
+      <form id="f-reg" class="hidden space-y-3 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm" onsubmit="return doRegister(event)">
+        <h2 class="text-xl font-extrabold text-[#081726]">Créer un compte annonceur</h2>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <input id="r-name" required placeholder="Votre nom" autocomplete="name" class="rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[#009668] focus:outline-none">
+          <input id="r-company" required placeholder="Entreprise / laboratoire" autocomplete="organization" class="rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[#009668] focus:outline-none">
+        </div>
+        <input id="r-email" type="email" required placeholder="E-mail professionnel" autocomplete="email" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[#009668] focus:outline-none">
+        <input id="r-phone" type="tel" placeholder="Téléphone (optionnel)" autocomplete="tel" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[#009668] focus:outline-none">
+        <div class="relative"><input id="r-pw" type="password" required placeholder="Mot de passe (8+ caractères, lettres et chiffres)" autocomplete="new-password" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-16 text-sm focus:border-[#009668] focus:outline-none">
+          <button type="button" onclick="togglePw('r-pw',this)" class="absolute right-3 top-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800">Afficher</button></div>
+        <input id="r-pw2" type="password" required placeholder="Confirmer le mot de passe" autocomplete="new-password" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[#009668] focus:outline-none">
+        <label class="flex items-start gap-2 text-xs text-slate-600"><input id="r-ok" type="checkbox" required class="mt-0.5"> J'accepte les conditions d'utilisation de la plateforme OFFIADS.</label>
+        <p id="r-err" class="hidden rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700"></p>
+        <button id="r-btn" type="submit" class="w-full rounded-xl bg-[#009668] py-2.5 text-sm font-semibold text-white hover:bg-[#00835b] disabled:opacity-50">Créer mon compte</button>
+      </form>
+      <p class="mt-5 text-center text-xs text-slate-500"><a href="index.html" class="font-semibold text-slate-700 hover:underline">← Retour au site</a></p>
+    </div>
+  </section>
+</div>
+<script src="js/geo.js"></script>
+<script src="js/core.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const home = u => u.role === 'admin' ? 'admin.html' : 'app.html';
+function go(u) {
+  const n = q.get('next') || '';
+  const ok = /^(app|admin)\.html(#[\w\/\-]*)?$/.test(n) && n.startsWith(home(u).replace('.html', ''));
+  location.href = ok ? n : home(u);
+}
+function setMode(m) {
+  const reg = m === 'register';
+  document.getElementById('f-login').classList.toggle('hidden', reg);
+  document.getElementById('f-reg').classList.toggle('hidden', !reg);
+  document.getElementById('tab-login').className = 'rounded-lg px-3 py-2 ' + (reg ? 'text-slate-600' : 'bg-white text-[#009668] shadow-sm');
+  document.getElementById('tab-reg').className = 'rounded-lg px-3 py-2 ' + (reg ? 'bg-white text-[#009668] shadow-sm' : 'text-slate-600');
+}
+function togglePw(id, btn) { const i = document.getElementById(id); const s = i.type === 'password'; i.type = s ? 'text' : 'password'; btn.textContent = s ? 'Masquer' : 'Afficher'; }
+function fillDemo(e, p) { document.getElementById('l-email').value = e; document.getElementById('l-pw').value = p; document.getElementById('l-pw').type = 'password'; }
+function showErr(id, m) { const e = document.getElementById(id); e.textContent = m; e.classList.remove('hidden'); }
+async function doLogin(ev) {
+  ev.preventDefault(); const b = document.getElementById('l-btn'); document.getElementById('l-err').classList.add('hidden'); b.disabled = true;
+  try { go(await OFF.login(document.getElementById('l-email').value, document.getElementById('l-pw').value)); }
+  catch (e) { showErr('l-err', e.message); b.disabled = false; }
+  return false;
+}
+async function doRegister(ev) {
+  ev.preventDefault(); const v = id => document.getElementById(id).value; document.getElementById('r-err').classList.add('hidden');
+  if (v('r-pw') !== v('r-pw2')) { showErr('r-err', 'Les mots de passe ne correspondent pas.'); return false; }
+  const b = document.getElementById('r-btn'); b.disabled = true;
+  try { go(await OFF.register({ name: v('r-name'), company: v('r-company'), email: v('r-email'), phone: v('r-phone'), password: v('r-pw') })); }
+  catch (e) { showErr('r-err', e.message); b.disabled = false; }
+  return false;
+}
+function forgot() {
+  OFF.dialog('Mot de passe oublié', `<p class="mb-3 text-xs text-slate-500">Mode local : l'envoi d'e-mail n'est pas encore branché. Saisissez votre e-mail et un nouveau mot de passe.</p>
+    <div class="space-y-3"><input id="fp-email" type="email" placeholder="Votre e-mail" class="${OFF.K.input}"><input id="fp-pw" type="password" placeholder="Nouveau mot de passe" class="${OFF.K.input}"></div>`,
+    [{ label: 'Annuler', cls: OFF.K.btn2 }, { label: 'Réinitialiser', fn: async () => {
+      try { await OFF.resetPassword(document.getElementById('fp-email').value, document.getElementById('fp-pw').value); OFF.toast('Mot de passe réinitialisé. Connectez-vous.'); document.getElementById('l-email').value = document.getElementById('fp-email').value; }
+      catch (e) { OFF.fail(e); return false; } } }]);
+}
+OFF.ready.then(() => {
+  const u = OFF.me(); if (u) return go(u);
+  setMode(q.get('mode') === 'register' ? 'register' : 'login');
+});
+</script>
+</body>
+</html>

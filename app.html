@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espace annonceur — OFFIADS</title>
+<link rel="icon" href="assets/symbol.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>body{font-family:'Inter',system-ui,sans-serif}</style>
+</head>
+<body><p style="padding:2rem;font-family:sans-serif">Chargement…</p>
+<script src="js/geo.js"></script>
+<script src="js/core.js"></script>
+<script>
+const K = OFF.K, $ = OFF.$, da = OFF.da, fmt = OFF.fmt, esc = OFF.esc, ic = OFF.ic;
+const V = {};
+const mine = u => OFF.D().campaigns.filter(c => c.userId === u.id);
+const net = id => { const n = OFF.D().settings.networks.find(x => x.id === id); return n ? n.name : 'Tous les logiciels'; };
+const zone = c => c.zoneMode === 'national' ? "Toute l'Algérie" : c.zoneMode === 'region' ? 'Région ' + c.region : c.wilaya;
+const head = (t, s, r) => `<div class="mb-6 flex flex-wrap items-end justify-between gap-3"><div><h1 class="text-2xl font-extrabold text-[#081726]">${t}</h1>${s ? `<p class="text-sm text-slate-500">${s}</p>` : ''}</div>${r || ''}</div>`;
+const kpi = (l, v, s) => `<div class="${K.card}"><div class="text-xs font-medium text-slate-500">${l}</div><div class="mt-1 text-2xl font-extrabold text-[#081726]">${v}</div>${s ? `<div class="mt-0.5 text-xs text-slate-400">${s}</div>` : ''}</div>`;
+const tbl = (heads, rows, empty) => `<div class="${K.card} overflow-hidden !p-0"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr>${heads.map(h => `<th class="${K.th}">${h}</th>`).join('')}</tr></thead><tbody class="divide-y divide-slate-100">${rows || `<tr><td colspan="${heads.length}" class="px-4 py-10 text-center text-slate-400">${empty}</td></tr>`}</tbody></table></div></div>`;
+const ctr = c => c.impressions ? (c.clicks / c.impressions * 100).toFixed(2) + ' %' : '—';
+const btnA = (k, id, label, icon, cls) => `<button class="${cls || K.mini}" onclick="act('${k}','${id}')">${ic(icon, 'h-3.5 w-3.5')} ${label}</button>`;
+const actions = c => {
+  let a = `<a href="#/campaign/${c.id}" class="${K.mini}">${ic('eye', 'h-3.5 w-3.5')} Voir</a>`;
+  if (c.status === 'active') a += btnA('pause', c.id, 'Pause', 'pause');
+  if (c.status === 'paused') a += btnA('resume', c.id, 'Reprendre', 'play');
+  if (c.status === 'active' || c.status === 'paused') a += btnA('stop', c.id, 'Arrêter', 'stop', K.danger);
+  a += `<button class="${K.mini}" onclick="dupCamp('${c.id}')">${ic('plus', 'h-3.5 w-3.5')} Dupliquer</button>`;
+  if (c.status === 'pending') a += btnA('cancel', c.id, 'Annuler', 'x', K.danger);
+  return `<div class="flex flex-wrap justify-end gap-1.5">${a}</div>`;
+};
+const thumb = c => c.thumb ? `<img src="${c.thumb}" alt="" class="h-9 w-14 rounded object-cover">` : `<div class="flex h-9 w-14 items-center justify-center rounded bg-slate-100 text-slate-400">${ic('play')}</div>`;
+const campRow = c => `<tr class="hover:bg-slate-50/60"><td class="${K.td}"><div class="flex items-center gap-3">${thumb(c)}<div><a href="#/campaign/${c.id}" class="font-semibold text-slate-900 hover:text-[#009668]">${esc(c.name)}</a><div class="text-xs text-slate-400">${c.id}</div></div></div></td>
+  <td class="${K.td}">${c.format === 'video' ? 'Vidéo' : 'Image'}</td><td class="${K.td}">${esc(zone(c))}</td><td class="${K.td}">${c.pharmacies}</td>
+  <td class="${K.td}">${fmt(c.impressions)} <span class="text-xs text-slate-400">/ ${fmt(c.imp)}</span></td><td class="${K.td} font-semibold">${da(c.total)}</td><td class="${K.td}">${OFF.badge(c.status)}</td><td class="${K.td}">${actions(c)}</td></tr>`;
+const CH = ['Campagne', 'Format', 'Zone', 'Pharmacies', 'Affichages', 'Total', 'Statut', ''];
+
+OFF.ready.then(() => {
+  const u = OFF.guard('advertiser'); if (!u) return;
+  OFF.shell({
+    nav: [['dashboard', 'Tableau de bord', 'home'], ['new', 'Nouvelle campagne', 'plus'], ['campaigns', 'Mes campagnes', 'list'], ['reports', 'Rapports', 'chart'], ['invoices', 'Factures', 'file'], ['wallet', 'Mon portefeuille', 'wallet'], ['settings', 'Paramètres', 'set']],
+    alias: { campaign: 'campaigns' },
+    top: u => `<div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-1.5"><div class="text-[11px] leading-tight text-slate-500">Solde disponible<div class="text-sm font-bold text-slate-900">${da(u.wallet.available)}</div></div><button onclick="recharge()" class="${K.btn} !px-3 !py-1.5">Recharger</button></div>`
+  });
+  OFF.start(V, 'dashboard');
+});
+
+/* ---------- Actions communes ---------- */
+async function act(kind, id) {
+  const c = OFF.D().campaigns.find(x => x.id === id); if (!c) return;
+  const M = { stop: ['Arrêter la campagne', 'Le budget non consommé sera libéré sur votre solde. Cette action est définitive.', 'Arrêter'], cancel: ['Annuler la campagne', 'Le montant total (' + da(c.total) + ') vous sera remboursé.', 'Annuler la campagne'] }[kind];
+  if (M && !await OFF.ask(M[0], M[1], M[2], true)) return;
+  try { OFF.campaignAction(kind, id, OFF.me().id); OFF.toast({ pause: 'Campagne mise en pause.', resume: 'Campagne reprise.', stop: 'Campagne arrêtée, budget restant libéré.', cancel: 'Campagne annulée et remboursée.' }[kind]); OFF.render(); } catch (e) { OFF.fail(e); }
+}
+function recharge() {
+  const s = OFF.D().settings;
+  OFF.dialog('Recharger mon portefeuille', `<p class="mb-3 text-xs text-slate-500">Votre demande est créditée après confirmation du paiement par l'équipe OFFIADS.</p>
+    <div class="space-y-3"><div class="grid grid-cols-4 gap-2 text-xs">${[20000, 50000, 100000, 200000].map(a => `<button type="button" class="${K.mini} justify-center" onclick="$('#rc-amt').value=${a}">${fmt(a)}</button>`).join('')}</div>
+    <input id="rc-amt" type="number" min="1000" step="1000" placeholder="Montant en DA" class="${K.input}">
+    <select id="rc-m" class="${K.input}"><option>Virement bancaire</option><option>Versement CCP</option><option>Chèque</option></select>
+    <input id="rc-ref" placeholder="Référence du paiement (optionnel)" class="${K.input}">
+    <div class="whitespace-pre-line rounded-xl bg-slate-50 p-3 text-xs text-slate-600">${esc(s.payInfo)}</div></div>`,
+    [{ label: 'Annuler', cls: K.btn2 }, { label: 'Envoyer la demande', fn: () => {
+      try { OFF.requestRecharge(OFF.me().id, $('#rc-amt').value, $('#rc-m').value, $('#rc-ref').value.trim()); OFF.toast('Demande de recharge envoyée.'); OFF.render(); } catch (e) { OFF.fail(e); return false; } } }]);
+}
+
+/* ---------- Tableau de bord ---------- */
+V.dashboard = (_, u) => {
+  const cs = mine(u), imp = OFF.sum(cs, 'impressions'), clk = OFF.sum(cs, 'clicks');
+  const html = head('Tableau de bord', 'Vue d\'ensemble de vos campagnes.', `<a href="#/new" class="${K.btn}">${ic('plus')} Nouvelle campagne</a>`) +
+    `<div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">${kpi('Campagnes actives', cs.filter(c => c.status === 'active').length, cs.filter(c => c.status === 'pending').length + ' en attente de validation')}${kpi('Affichages', fmt(imp))}${kpi('Clics', fmt(clk), 'CTR ' + (imp ? (clk / imp * 100).toFixed(2) + ' %' : '—'))}${kpi('Dépensé', da(u.wallet.spent), 'Réservé : ' + da(u.wallet.reserved))}${kpi('Solde disponible', da(u.wallet.available))}</div>
+    <div class="mb-6 grid gap-6 lg:grid-cols-3"><div class="${K.card} lg:col-span-2"><div class="mb-3 font-bold text-slate-900">Affichages — 14 derniers jours</div><div id="ch"></div></div>
+    <div class="${K.card}"><div class="mb-2 font-bold text-slate-900">Couverture par wilaya</div><div id="dm"></div><div id="dr" class="mt-3"></div></div></div>
+    <div class="mb-3 flex items-center justify-between"><h2 class="font-bold text-slate-900">Campagnes récentes</h2><a href="#/campaigns" class="text-sm font-semibold text-[#009668]">Tout voir →</a></div>` +
+    tbl(CH, cs.slice(0, 5).map(campRow).join(''), 'Aucune campagne. Créez votre première campagne !');
+  return { html, after: () => { const s = OFF.series(cs, 14); OFF.line($('#ch'), s.labels, [s.imp, s.clk]);
+    const v = {}; OFF.byWilaya(cs).forEach(x => v[x.label] = x.value); $('#dm').innerHTML = GEO.dzMap({ vals: v, max: 280 }); OFF.hbars($('#dr'), OFF.byRegion(cs)); } };
+};
+
+/* ---------- Nouvelle campagne ---------- */
+let W = null;
+const wInit = () => ({ name: '', format: 'image', zoneMode: 'wilaya', wilaya: 'Alger', region: 'Centre', network: 'all', pharmacies: 50, days: 30, freq: 5, headline: '', cta: 'Découvrir', url: '', file: null, pv: '' });
+const card = (n, t, s, body) => `<section class="${K.card}"><div class="mb-4 flex items-start gap-3"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#009668] text-sm font-bold text-white">${n}</span><div><h2 class="font-bold text-slate-900">${t}</h2><p class="text-xs text-slate-500">${s}</p></div></div>${body}</section>`;
+V.new = () => {
+  if (!W) W = wInit(); const s = OFF.D().settings;
+  const opt = (arr, cur) => arr.map(x => `<option value="${esc(x)}" ${x === cur ? 'selected' : ''}>${esc(x)}</option>`).join('');
+  const choice = (id, k, v, t, sub) => `<button type="button" id="${id}" onclick="wSet('${k}','${v}')" class="rounded-xl border-2 p-3 text-left transition"><div class="font-semibold text-slate-900">${t}</div><div class="text-xs text-slate-500">${sub}</div></button>`;
+  const html = head('Créer une campagne', 'Diffusez vos publicités dans les pharmacies en quelques étapes simples.') + `<div class="grid gap-6 xl:grid-cols-[1fr_380px]"><div class="space-y-5">
+  ${card(1, 'Nom et format', 'Donnez un nom à la campagne et choisissez le type de contenu.', `<input id="w-name" maxlength="80" value="${esc(W.name)}" oninput="wText('name',this.value)" placeholder="Ex : Lancement gamme dermocosmétique" class="${K.input} mb-3">
+    <div class="grid gap-3 sm:grid-cols-2">${choice('fmt-image', 'format', 'image', 'Image / Bannière', 'JPG ou PNG (3 Mo max)')}${choice('fmt-video', 'format', 'video', 'Vidéo', 'MP4, 30 s max (15 Mo max)')}</div>`)}
+  ${card(2, 'Zone de diffusion', 'Toute l\'Algérie, une région ou une wilaya, et le logiciel / réseau ciblé.', `<div class="grid gap-3 sm:grid-cols-3">${choice('z-national', 'zoneMode', 'national', "Toute l'Algérie", 'Coef. × ' + s.zone.national)}${choice('z-region', 'zoneMode', 'region', 'Par région', '5 régions : Centre, Est, Ouest, Sud-Est, Sud-Ouest')}${choice('z-wilaya', 'zoneMode', 'wilaya', 'Par wilaya', 'Coef. × ' + s.zone.wilaya)}</div>
+    <div class="mt-3 grid gap-3 sm:grid-cols-2"><select id="w-region" onchange="wSet('region',this.value)" class="${K.input}">${opt(Object.keys(OFF.REGIONS), W.region)}</select><select id="w-wilaya" onchange="wSet('wilaya',this.value)" class="${K.input}">${GEO.wopts(W.wilaya)}</select>
+    <select id="w-network" onchange="wSet('network',this.value)" class="${K.input} sm:col-span-2"><option value="all">Tous les logiciels partenaires</option>${s.networks.map(n => `<option value="${n.id}" ${n.id === W.network ? 'selected' : ''}>${esc(n.name)} (× ${n.coef})</option>`).join('')}</select></div>
+    <div class="mt-5 rounded-xl border border-slate-100 bg-slate-50/60 p-4"><div class="mb-2 text-center text-xs text-slate-500">Cliquez sur la carte pour choisir une wilaya (ou sa région en mode « Par région »).</div><div id="w-map"></div><div id="w-cap" class="mt-2 text-center text-xs font-bold text-slate-700"></div>${GEO.mapLegend()}</div>`)}
+  ${card(3, 'Nombre de pharmacies', 'Pharmacies où votre publicité sera diffusée.', `<div class="flex items-center gap-4"><input id="w-ph" type="range" step="1" oninput="wPh(this.value)" class="flex-1 accent-[#009668]"><input id="w-phn" type="number" step="1" onchange="wPh(this.value)" class="${K.input} !w-24 text-center"></div><p id="w-av" class="mt-2 text-xs text-slate-500"></p>`)}
+  ${card(4, 'Période et fréquence', 'Durée de la campagne et nombre d\'affichages par jour et par pharmacie.', `<div class="grid gap-3 sm:grid-cols-2"><div><label class="mb-1 block text-xs font-semibold text-slate-600">Durée</label><select id="w-days" onchange="wSet('days',+this.value)" class="${K.input}">${OFF.DURATIONS.map(d => `<option value="${d}" ${d === W.days ? 'selected' : ''}>${d} jours</option>`).join('')}</select></div>
+    <div><label class="mb-1 block text-xs font-semibold text-slate-600">Fréquence (par jour, max ${s.maxFreq})</label><input id="w-freq" type="number" min="1" max="${s.maxFreq}" value="${W.freq}" onchange="wFreq(this.value)" class="${K.input}"></div></div>`)}
+  ${card(5, 'Votre visuel', 'Ajoutez votre image ou votre vidéo, le titre et le bouton d\'action.', `<label id="w-drop" class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 hover:border-[#009668]"><span id="w-fname" class="font-semibold text-slate-700">Cliquez pour choisir un fichier</span><span id="w-fhint" class="text-xs"></span><input id="w-file" type="file" class="hidden" onchange="wFile(this)"></label>
+    <button id="w-clear" type="button" onclick="wClear()" class="${K.mini} mt-2 hidden">${ic('trash', 'h-3.5 w-3.5')} Retirer le fichier</button>
+    <div class="mt-3 grid gap-3 sm:grid-cols-2"><input id="w-head" maxlength="70" value="${esc(W.headline)}" oninput="wText('headline',this.value)" placeholder="Titre affiché sur la publicité" class="${K.input} sm:col-span-2"><input id="w-cta" maxlength="24" value="${esc(W.cta)}" oninput="wText('cta',this.value)" placeholder="Texte du bouton" class="${K.input}"><input id="w-url" value="${esc(W.url)}" oninput="wText('url',this.value)" placeholder="Lien de destination (https://…) — optionnel" class="${K.input}"></div>`)}
+  </div>
+  <aside class="xl:sticky xl:top-20 xl:self-start"><div class="${K.card}"><h2 class="mb-3 text-lg font-bold text-[#081726]">Résumé de la campagne</h2>
+    <div id="pv" class="relative mb-4 flex aspect-video items-end overflow-hidden rounded-xl bg-gradient-to-br from-[#0e2439] to-[#009668] p-4 text-white"><div id="pv-media" class="absolute inset-0"></div><div class="relative z-10"><div id="pv-head" class="text-lg font-bold leading-tight drop-shadow"></div><span id="pv-cta" class="mt-2 inline-block rounded-lg bg-sky-500 px-3 py-1 text-xs font-semibold"></span></div></div>
+    <dl class="space-y-2 text-sm">${[['s-format', 'Format'], ['s-zone', 'Zone'], ['s-net', 'Logiciel / réseau'], ['s-pharm', 'Pharmacies'], ['s-days', 'Durée'], ['s-freq', 'Fréquence'], ['s-imp', 'Affichages estimés'], ['s-cpm', 'CPM ajusté (1 000 affichages)']].map(r => `<div class="flex justify-between gap-3"><dt class="text-slate-500">${r[1]}</dt><dd id="${r[0]}" class="text-right font-medium text-slate-900"></dd></div>`).join('')}</dl>
+    <div class="my-4 space-y-2 border-t border-slate-100 pt-4 text-sm"><div class="flex justify-between"><span class="text-slate-500">Budget publicitaire (réservé)</span><b id="s-budget"></b></div><div class="flex justify-between"><span class="text-slate-500">Frais fixe OFFIADS</span><b id="s-fee"></b></div></div>
+    <div class="flex items-center justify-between rounded-xl bg-emerald-50 p-3"><span class="font-bold text-slate-900">Total à payer</span><span id="s-total" class="text-xl font-extrabold text-[#009668]"></span></div>
+    <div class="mt-3 flex justify-between text-xs text-slate-500"><span>Solde disponible : <b id="s-bal"></b></span><span>Après paiement : <b id="s-after"></b></span></div>
+    <p id="s-warn" class="mt-3 hidden rounded-lg bg-amber-50 p-2.5 text-xs font-medium text-amber-800"></p>
+    <button id="w-pay" type="button" onclick="wSubmit()" class="${K.btn} mt-4 w-full !py-3">Valider et payer ${ic('check')}</button>
+    <p class="mt-3 text-[11px] leading-relaxed text-slate-400">Le frais fixe est débité à la validation. Le budget publicitaire est réservé puis consommé selon la diffusion réelle ; le reliquat est libéré automatiquement. Votre campagne est vérifiée par OFFIADS avant diffusion.</p></div></aside></div>`;
+  return { html, after: () => { wSync(); wPreview(); } };
+};
+function wSync() {
+  const s = OFF.D().settings, on = 'rounded-xl border-2 p-3 text-left transition border-[#009668] bg-emerald-50/40', off = 'rounded-xl border-2 p-3 text-left transition border-slate-200 hover:border-slate-300';
+  ['image', 'video'].forEach(f => $('#fmt-' + f).className = W.format === f ? on : off);
+  ['national', 'region', 'wilaya'].forEach(z => $('#z-' + z).className = W.zoneMode === z ? on : off);
+  $('#w-region').classList.toggle('hidden', W.zoneMode !== 'region'); $('#w-wilaya').classList.toggle('hidden', W.zoneMode !== 'wilaya');
+  $('#w-region').value = W.region; $('#w-wilaya').value = W.wilaya;
+  const zon = W.zoneMode === 'national' ? () => true : W.zoneMode === 'region' ? x => GEO.REG[x] === W.region : x => x === W.wilaya;
+  $('#w-map').innerHTML = GEO.dzMap({ click: 'wMapPick', on: zon, one: W.zoneMode === 'wilaya' ? W.wilaya : '', max: 360 });
+  $('#w-cap').textContent = W.zoneMode === 'national' ? GEO.WL.length + ' wilayas · toute l\'Algérie' : W.zoneMode === 'region' ? 'Région ' + W.region + ' · ' + GEO.RW[W.region].length + ' wilayas' : GEO.wcode(W.wilaya) + ' – ' + W.wilaya + ' · région ' + GEO.REG[W.wilaya];
+  const av = OFF.eligible(W).length, max = Math.max(s.minPharm, Math.min(s.maxPharm, av)), sl = $('#w-ph'), nn = $('#w-phn');
+  sl.min = nn.min = s.minPharm; sl.max = nn.max = max;
+  W.pharmacies = Math.min(Math.max(W.pharmacies, s.minPharm), max); sl.value = nn.value = W.pharmacies;
+  $('#w-av').innerHTML = av < s.minPharm ? `<span class="font-semibold text-red-600">Seulement ${av} pharmacie(s) active(s) dans cette zone (minimum ${s.minPharm}). Élargissez la zone.</span>` : `${av} pharmacies actives disponibles dans cette zone (maximum ${max}).`;
+  $('#w-file').accept = W.format === 'image' ? 'image/jpeg,image/png' : 'video/mp4';
+  $('#w-fhint').textContent = W.format === 'image' ? 'JPG ou PNG — 3 Mo max' : 'MP4 — 30 secondes et 15 Mo max';
+  $('#w-fname').textContent = W.file ? W.file.name : 'Cliquez pour choisir un fichier'; $('#w-clear').classList.toggle('hidden', !W.file);
+  wCalc();
+}
+function wCalc() {
+  const s = OFF.D().settings, u = OFF.me(), p = OFF.price(W), av = OFF.eligible(W).length;
+  const set = (id, v) => { $('#' + id).textContent = v; };
+  set('s-format', W.format === 'video' ? 'Vidéo' : 'Image / Bannière'); set('s-zone', zone(W)); set('s-net', net(W.network)); set('s-pharm', W.pharmacies);
+  set('s-days', W.days + ' jours'); set('s-freq', W.freq + ' / jour'); set('s-imp', fmt(p.imp)); set('s-cpm', da(p.cpm));
+  set('s-budget', da(p.budget)); set('s-fee', da(p.fee)); set('s-total', da(p.total)); set('s-bal', da(u.wallet.available)); set('s-after', da(u.wallet.available - p.total));
+  $('#s-after').className = u.wallet.available - p.total < 0 ? 'text-red-600' : '';
+  const w = [];
+  if (p.budget < s.minBudget) w.push('Budget publicitaire minimum : ' + da(s.minBudget) + '. Augmentez les pharmacies, la durée ou la fréquence.');
+  if (u.wallet.available < p.total) w.push('Solde insuffisant : il manque ' + da(p.total - u.wallet.available) + '.');
+  if (av < s.minPharm) w.push('Zone trop restreinte.');
+  const e = $('#s-warn'); e.textContent = w.join(' '); e.classList.toggle('hidden', !w.length);
+}
+function wPreview() {
+  $('#pv-head').textContent = W.headline || W.name || 'Votre titre ici'; $('#pv-cta').textContent = W.cta || 'Découvrir';
+  const m = $('#pv-media'); m.innerHTML = '';
+  if (W.pv) m.innerHTML = W.format === 'video' ? `<video src="${W.pv}" muted autoplay loop playsinline class="h-full w-full object-cover"></video>` : `<img src="${W.pv}" alt="" class="h-full w-full object-cover">`;
+  if (W.pv) m.insertAdjacentHTML('beforeend', '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>');
+}
+function wSet(k, v) { W[k] = v; if (k === 'format') wClear(true); wSync(); wPreview(); }
+function wMapPick(i) { const x = GEO.WL[i]; if (W.zoneMode === 'region') W.region = GEO.REG[x]; else { W.zoneMode = 'wilaya'; W.wilaya = x; } wSync(); wPreview(); }
+function wText(k, v) { W[k] = v; wPreview(); }
+function wPh(v) { W.pharmacies = parseInt(v, 10) || OFF.D().settings.minPharm; wSync(); }
+function wFreq(v) { const m = OFF.D().settings.maxFreq; W.freq = Math.min(m, Math.max(1, parseInt(v, 10) || 1)); $('#w-freq').value = W.freq; wCalc(); }
+function wClear(silent) { if (W.pv) URL.revokeObjectURL(W.pv); W.file = null; W.pv = ''; const f = $('#w-file'); if (f) f.value = ''; if (!silent) { wSync(); wPreview(); } }
+async function wFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const bad = m => { inp.value = ''; OFF.toast(m, 'err'); };
+  if (W.format === 'image' && !['image/jpeg', 'image/png'].includes(f.type)) return bad('Format Image : JPG ou PNG uniquement.');
+  if (W.format === 'video' && f.type !== 'video/mp4') return bad('Format Vidéo : MP4 uniquement.');
+  if (f.type.startsWith('image/') && f.size > 3e6) return bad('Image trop lourde (3 Mo maximum).');
+  if (f.type === 'video/mp4') { if (f.size > 15e6) return bad('Vidéo trop lourde (15 Mo maximum).'); const d = await OFF.media.duration(f); if (!(d <= 30)) return bad('La vidéo doit durer 30 secondes maximum.'); }
+  if (W.pv) URL.revokeObjectURL(W.pv); W.file = f; W.pv = URL.createObjectURL(f); wSync(); wPreview(); OFF.toast('Visuel chargé : ' + f.name);
+}
+async function wSubmit() {
+  const u = OFF.me(), p = OFF.price(W), err = m => OFF.toast(m, 'err');
+  W.name = $('#w-name').value.trim(); W.headline = $('#w-head').value.trim(); W.cta = $('#w-cta').value.trim() || 'Découvrir'; W.url = $('#w-url').value.trim();
+  if (!W.name) { $('#w-name').focus(); return err('Donnez un nom à la campagne.'); }
+  if (!W.file) return err('Ajoutez votre visuel (' + (W.format === 'video' ? 'vidéo MP4' : 'image JPG/PNG') + ').');
+  if (W.url && !/^https?:\/\/\S+\.\S+/.test(W.url)) return err('Le lien de destination doit commencer par http:// ou https://');
+  if (u.wallet.available < p.total) {
+    OFF.dialog('Solde insuffisant', `<p>Il vous manque <b>${da(p.total - u.wallet.available)}</b> pour lancer cette campagne (total ${da(p.total)}).</p>`, [{ label: 'Plus tard', cls: K.btn2 }, { label: 'Recharger mon portefeuille', fn: () => { setTimeout(recharge, 0); } }]); return;
+  }
+  if (!await OFF.ask('Valider et payer', `Vous allez payer <b>${da(p.total)}</b> : ${da(p.fee)} de frais fixe (débités maintenant) et ${da(p.budget)} de budget publicitaire (réservé, consommé selon la diffusion réelle). La campagne sera ensuite vérifiée par OFFIADS.`, 'Valider et payer')) return;
+  const btn = $('#w-pay'); btn.disabled = true; const id = OFF.uid('C');
+  try {
+    await OFF.media.put(id, W.file); const thumb = await OFF.media.thumb(W.file);
+    const c = OFF.createCampaign(u.id, { name: W.name, format: W.format, zoneMode: W.zoneMode, wilaya: W.zoneMode === 'wilaya' ? W.wilaya : '', region: W.zoneMode === 'region' ? W.region : '', network: W.network, pharmacies: W.pharmacies, days: Number(W.days), freq: Number(W.freq), headline: W.headline, cta: W.cta, url: W.url, mediaType: W.file.type, mediaName: W.file.name, thumb }, id);
+    wClear(true); W = null; OFF.toast('Campagne envoyée pour validation (' + da(c.total) + ' débités/réservés).'); location.hash = '#/campaign/' + c.id;
+  } catch (e) { OFF.media.del(id); OFF.fail(e); btn.disabled = false; }
+}
+
+function dupCamp(id) {
+  const c = OFF.D().campaigns.find(x => x.id === id); if (!c) return;
+  W = Object.assign(wInit(), { name: c.name + ' (copie)', format: c.format, zoneMode: c.zoneMode, wilaya: c.wilaya || 'Alger', region: c.region || 'Centre', network: c.network || 'all', pharmacies: c.pharmacies, days: c.days, freq: c.freq, headline: c.headline || '', cta: c.cta || 'Découvrir', url: c.url || '' });
+  OFF.toast('Paramètres copiés : ajoutez un visuel puis validez.');
+  if (location.hash === '#/new') OFF.render(); else location.hash = '#/new';
+}
+
+/* ---------- Mes campagnes ---------- */
+let CF = { q: '', st: '' };
+V.campaigns = (_, u) => {
+  const html = head('Mes campagnes', 'Suivez et gérez toutes vos campagnes.', `<a href="#/new" class="${K.btn}">${ic('plus')} Nouvelle campagne</a>`) +
+    `<div class="mb-4 flex flex-wrap gap-3"><input id="cf-q" value="${esc(CF.q)}" oninput="cfSet()" placeholder="Rechercher une campagne…" class="${K.input} !w-72"><select id="cf-st" onchange="cfSet()" class="${K.input} !w-48"><option value="">Tous les statuts</option>${['pending', 'active', 'paused', 'ended', 'rejected', 'cancelled'].map(s => `<option value="${s}" ${CF.st === s ? 'selected' : ''}>${({ pending: 'En attente', active: 'Active', paused: 'En pause', ended: 'Terminée', rejected: 'Rejetée', cancelled: 'Annulée' })[s]}</option>`).join('')}</select></div><div id="cf-t"></div>`;
+  return { html, after: cfDraw };
+};
+function cfSet() { CF.q = $('#cf-q').value; CF.st = $('#cf-st').value; cfDraw(); }
+function cfDraw() {
+  const q = CF.q.toLowerCase(), cs = mine(OFF.me()).filter(c => (!CF.st || c.status === CF.st) && (!q || (c.name + ' ' + c.id + ' ' + zone(c)).toLowerCase().includes(q)));
+  $('#cf-t').innerHTML = tbl(CH, cs.map(campRow).join(''), 'Aucune campagne ne correspond.');
+}
+
+/* ---------- Détail d'une campagne ---------- */
+V.campaign = (id, u) => {
+  const c = OFF.D().campaigns.find(x => x.id === id && x.userId === u.id);
+  if (!c) return head('Campagne introuvable') + `<a href="#/campaigns" class="${K.btn}">Retour</a>`;
+  const pct = c.budget ? Math.min(100, c.spent / c.budget * 100) : 0;
+  const info = (l, v) => `<div class="flex justify-between gap-3 border-b border-slate-50 py-2 text-sm"><span class="text-slate-500">${l}</span><span class="text-right font-medium">${v}</span></div>`;
+  const html = head(esc(c.name), `${c.id} · créée le ${OFF.dt(c.created)}`, `<div class="flex flex-wrap gap-2">${OFF.badge(c.status)}${actions(c).replace('justify-end', '')}</div>`) +
+    (c.status === 'rejected' ? `<div class="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"><b>Campagne rejetée :</b> ${esc(c.reason)} — le montant total a été remboursé.</div>` : '') +
+    (c.status === 'pending' ? `<div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Votre campagne est en cours de vérification par OFFIADS. Elle sera diffusée dès validation.</div>` : '') +
+    `<div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">${kpi('Affichages', fmt(c.impressions), 'sur ' + fmt(c.imp) + ' estimés')}${kpi('Clics', fmt(c.clicks), 'CTR ' + ctr(c))}${kpi('Dépensé', da(c.spent), 'sur ' + da(c.budget))}${kpi('Fin prévue', c.endAt ? OFF.dt(c.endAt) : '—', c.endReason || '')}</div>
+    <div class="mb-6 ${K.card}"><div class="mb-1 flex justify-between text-xs"><span class="font-semibold text-slate-600">Consommation du budget</span><b>${pct.toFixed(1)} %</b></div><div class="h-2.5 rounded-full bg-slate-100"><div class="h-2.5 rounded-full bg-[#009668]" style="width:${pct}%"></div></div></div>
+    <div class="grid gap-6 lg:grid-cols-3"><div class="${K.card} lg:col-span-2"><div class="mb-3 font-bold text-slate-900">Affichages — 14 derniers jours</div><div id="ch"></div></div>
+    <div class="${K.card}"><div class="mb-3 font-bold text-slate-900">Visuel</div><div id="md" class="mb-3 flex aspect-video items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-xs text-slate-400">Chargement…</div><div class="text-xs text-slate-500">${esc(c.headline || '')}</div></div>
+    <div class="${K.card}"><div class="mb-2 font-bold text-slate-900">Paramètres</div>${info('Format', c.format === 'video' ? 'Vidéo' : 'Image')}${info('Zone', esc(zone(c)))}${info('Logiciel / réseau', esc(net(c.network)))}${info('Pharmacies', c.pharmacies)}${info('Durée', c.days + ' jours')}${info('Fréquence', c.freq + ' / jour')}${info('CPM ajusté', da(c.cpm))}${info('Frais fixe', da(c.fee))}${info('Total', '<b>' + da(c.total) + '</b>')}</div>
+    <div class="${K.card} lg:col-span-2"><div class="mb-3 font-bold text-slate-900">Affichages par wilaya</div><div class="grid gap-4 sm:grid-cols-2"><div id="bm"></div><div id="bw"></div></div></div></div>`;
+  return { html, after: () => {
+    const s = OFF.series([c], 14); OFF.line($('#ch'), s.labels, [s.imp, s.clk]); OFF.hbars($('#bw'), OFF.byWilaya([c]).slice(0, 8)); const v = {}; OFF.byWilaya([c]).forEach(x => v[x.label] = x.value); $('#bm').innerHTML = GEO.dzMap({ vals: v, max: 280 });
+    OFF.media.get(c.id).then(b => { const m = $('#md'); if (!m) return; if (!b) { m.textContent = 'Visuel indisponible sur cet appareil'; return; } const url = URL.createObjectURL(b); m.innerHTML = c.format === 'video' ? `<video src="${url}" controls muted class="h-full w-full object-cover"></video>` : `<img src="${url}" alt="" class="h-full w-full object-cover">`; }).catch(() => { $('#md').textContent = 'Visuel indisponible'; });
+  } };
+};
+
+/* ---------- Rapports ---------- */
+let R = { c: 'all', d: 30 };
+function rSet() { R.c = $('#r-c').value; R.d = +$('#r-d').value; OFF.render(); }
+function rData(u) {
+  const all = mine(u), cs = R.c === 'all' ? all : all.filter(c => c.id === R.c), s = OFF.series(cs, R.d);
+  return { all, cs, s, imp: s.imp.reduce((a, b) => a + b, 0), clk: s.clk.reduce((a, b) => a + b, 0) };
+}
+V.reports = (_, u) => {
+  const r = rData(u);
+  const html = head('Rapports', 'Affichages, interactions, zones et performance.', `<div class="flex gap-2"><button onclick="rCsv()" class="${K.btn2}">${ic('dl')} Export CSV</button><button onclick="rPrint()" class="${K.btn2}">${ic('print')} Imprimer / PDF</button></div>`) +
+    `<div class="mb-5 flex flex-wrap gap-3"><select id="r-c" onchange="rSet()" class="${K.input} !w-72"><option value="all">Toutes les campagnes</option>${r.all.map(c => `<option value="${c.id}" ${R.c === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select><select id="r-d" onchange="rSet()" class="${K.input} !w-44">${[7, 14, 30, 90].map(d => `<option value="${d}" ${R.d === d ? 'selected' : ''}>${d} derniers jours</option>`).join('')}</select></div>
+    <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">${kpi('Affichages (période)', fmt(r.imp))}${kpi('Clics (période)', fmt(r.clk))}${kpi('CTR', r.imp ? (r.clk / r.imp * 100).toFixed(2) + ' %' : '—')}${kpi('Dépensé (total campagnes)', da(OFF.sum(r.cs, 'spent')))}</div>
+    <div class="mb-6 ${K.card}"><div class="mb-3 font-bold text-slate-900">Évolution</div><div id="ch"></div></div>
+    <div class="grid gap-6 lg:grid-cols-2"><div class="${K.card}"><div class="mb-3 font-bold text-slate-900">Carte des affichages par wilaya</div><div id="rm"></div></div><div class="${K.card}"><div class="mb-3 font-bold text-slate-900">Par région</div><div id="rr"></div><div class="mb-3 mt-5 font-bold text-slate-900">Top wilayas</div><div id="bw"></div></div></div>
+    <div class="mt-6 ${K.card}"><div class="mb-3 font-bold text-slate-900">Répartition par format</div><div id="dn"></div></div>`;
+  return { html, after: () => {
+    OFF.line($('#ch'), r.s.labels, [r.s.imp, r.s.clk]); OFF.hbars($('#bw'), OFF.byWilaya(r.cs).slice(0, 8)); OFF.hbars($('#rr'), OFF.byRegion(r.cs)); const v = {}; OFF.byWilaya(r.cs).forEach(x => v[x.label] = x.value); $('#rm').innerHTML = GEO.dzMap({ vals: v, max: 340 });
+    OFF.donut($('#dn'), [{ label: 'Image / Bannière', value: OFF.sum(r.cs.filter(c => c.format === 'image'), 'impressions'), color: '#009668' }, { label: 'Vidéo', value: OFF.sum(r.cs.filter(c => c.format === 'video'), 'impressions'), color: '#00a3ff' }]);
+  } };
+};
+function rCsv() {
+  const r = rData(OFF.me()), rows = [['Date', 'Affichages', 'Clics', 'CTR %']];
+  r.s.labels.forEach((l, i) => rows.push([l, r.s.imp[i], r.s.clk[i], r.s.imp[i] ? (r.s.clk[i] / r.s.imp[i] * 100).toFixed(2) : '0']));
+  rows.push([], ['Code', 'Wilaya', 'Région', 'Affichages']); OFF.byWilaya(r.cs).forEach(x => rows.push([GEO.wcode(x.label), x.label, GEO.REG[x.label], x.value]));
+  OFF.csv(rows, 'offiads-rapport-' + new Date().toISOString().slice(0, 10) + '.csv'); OFF.toast('Export CSV téléchargé.');
+}
+function rPrint() {
+  const u = OFF.me(), r = rData(u);
+  OFF.printHTML(`<h1 style="font-size:20px;font-weight:800">OFFIADS — Rapport de campagne</h1><p>${esc(u.company)} · ${new Date().toLocaleDateString('fr-FR')} · ${R.d} derniers jours · ${R.c === 'all' ? 'Toutes les campagnes' : esc((r.cs[0] || {}).name)}</p>
+    <p>Affichages : <b>${fmt(r.imp)}</b> · Clics : <b>${fmt(r.clk)}</b> · CTR : <b>${r.imp ? (r.clk / r.imp * 100).toFixed(2) + ' %' : '—'}</b></p>
+    <table style="width:100%;border-collapse:collapse;margin-top:12px"><tr><th align="left">Date</th><th align="right">Affichages</th><th align="right">Clics</th></tr>${r.s.labels.map((l, i) => `<tr><td>${l}</td><td align="right">${r.s.imp[i]}</td><td align="right">${r.s.clk[i]}</td></tr>`).join('')}</table>
+    <h3 style="margin-top:16px">Top wilayas</h3>${OFF.byWilaya(r.cs).slice(0, 8).map(x => `<div>${esc(x.label)} : ${fmt(x.value)}</div>`).join('') || 'Aucune donnée'}`);
+}
+
+/* ---------- Factures ---------- */
+const invAmt = c => c.status === 'ended' ? c.fee + Math.round(c.spent) : c.fee + c.budget;
+V.invoices = (_, u) => {
+  const cs = mine(u).filter(c => !['rejected', 'cancelled'].includes(c.status));
+  return head('Factures', 'Une facture par campagne ; elle devient définitive à la clôture de la campagne.') +
+    tbl(['N° facture', 'Date', 'Campagne', 'Montant', 'Statut', ''], cs.map(c => `<tr><td class="${K.td} font-semibold">${c.invoiceNo}</td><td class="${K.td}">${OFF.dt(c.created)}</td><td class="${K.td}">${esc(c.name)}</td><td class="${K.td} font-semibold">${da(invAmt(c))}</td><td class="${K.td}">${c.status === 'ended' ? '<span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">Définitive</span>' : '<span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">Provisoire</span>'}</td><td class="${K.td} text-right"><button class="${K.mini}" onclick="invoice('${c.id}')">${ic('eye', 'h-3.5 w-3.5')} Voir</button></td></tr>`).join(''), 'Aucune facture pour le moment.');
+};
+function invoice(id) {
+  const u = OFF.me(), c = OFF.D().campaigns.find(x => x.id === id && x.userId === u.id); if (!c) return;
+  const fin = c.status === 'ended', diff = fin ? Math.round(c.spent) : c.budget;
+  const html = `<div style="font-family:Arial,sans-serif;color:#0f172a"><div style="display:flex;justify-content:space-between;align-items:flex-start"><img src="assets/logo.png" style="height:34px" alt="OFFIADS"><div style="text-align:right"><div style="font-size:20px;font-weight:800">FACTURE ${fin ? '' : 'PROVISOIRE'}</div><div>N° ${c.invoiceNo}</div><div>Date : ${OFF.dt(c.created)}</div></div></div>
+    <div style="margin:18px 0;padding:10px;background:#f1f5f9;border-radius:8px"><b>${esc(u.company)}</b><br>${esc(u.name)} · ${esc(u.email)}${u.phone ? ' · ' + esc(u.phone) : ''}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="background:#f8fafc"><th align="left" style="padding:8px">Désignation</th><th align="right" style="padding:8px">Montant</th></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #e2e8f0">Frais fixe de campagne — ${esc(c.name)}</td><td align="right" style="padding:8px;border-bottom:1px solid #e2e8f0">${da(c.fee)}</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #e2e8f0">Diffusion publicitaire — ${fmt(c.impressions)} affichages (CPM ${da(c.cpm)})${fin ? '' : ' · budget réservé'}</td><td align="right" style="padding:8px;border-bottom:1px solid #e2e8f0">${da(diff)}</td></tr>
+    <tr><td style="padding:8px;font-weight:800">TOTAL</td><td align="right" style="padding:8px;font-weight:800">${da(c.fee + diff)}</td></tr></table>
+    <p style="margin-top:14px;font-size:11px;color:#64748b">${fin ? 'Le budget non consommé a été restitué au portefeuille.' : 'Facture provisoire : le montant définitif sera calculé à la clôture selon la diffusion réelle.'}</p></div>`;
+  OFF.dialog('Facture ' + c.invoiceNo, html, [{ label: 'Fermer', cls: K.btn2 }, { label: 'Imprimer', fn: () => { OFF.printHTML(html); return false; } }], true);
+}
+
+/* ---------- Portefeuille ---------- */
+const TX = { recharge: 'Recharge', fee: 'Frais fixe', reserve: 'Budget réservé', release: 'Budget libéré', refund: 'Remboursement' };
+V.wallet = (_, u) => {
+  const tx = OFF.D().transactions.filter(t => t.userId === u.id);
+  return head('Mon portefeuille', 'Solde, budget réservé et historique des opérations.', `<button onclick="recharge()" class="${K.btn}">${ic('plus')} Recharger</button>`) +
+    `<div class="mb-6 grid gap-4 sm:grid-cols-3">${kpi('Disponible', da(u.wallet.available))}${kpi('Réservé (campagnes en cours)', da(u.wallet.reserved))}${kpi('Dépensé (diffusion)', da(u.wallet.spent))}</div>` +
+    tbl(['Date', 'Type', 'Détail', 'Montant', 'Statut'], tx.map(t => `<tr><td class="${K.td} whitespace-nowrap">${OFF.dtt(t.date)}</td><td class="${K.td}">${TX[t.type] || t.type}</td><td class="${K.td}">${esc(t.label)}</td><td class="${K.td} font-semibold ${t.amount < 0 ? 'text-slate-900' : 'text-[#009668]'}">${t.amount > 0 ? '+' : ''}${da(t.amount)}</td><td class="${K.td}">${t.status === 'pending' ? OFF.badge('pending') : t.status === 'rejected' ? OFF.badge('rejected') : OFF.badge('ok')}</td></tr>`).join(''), 'Aucune opération.');
+};
+
+/* ---------- Paramètres ---------- */
+V.settings = (_, u) => head('Paramètres', 'Informations de votre compte annonceur.') +
+  `<div class="grid gap-6 lg:grid-cols-2"><div class="${K.card} space-y-3"><div class="font-bold text-slate-900">Profil</div>
+  <div><label class="mb-1 block text-xs font-semibold text-slate-600">Nom</label><input id="p-name" value="${esc(u.name)}" class="${K.input}"></div>
+  <div><label class="mb-1 block text-xs font-semibold text-slate-600">Entreprise</label><input id="p-co" value="${esc(u.company)}" class="${K.input}"></div>
+  <div><label class="mb-1 block text-xs font-semibold text-slate-600">Téléphone</label><input id="p-ph" value="${esc(u.phone)}" class="${K.input}"></div>
+  <div><label class="mb-1 block text-xs font-semibold text-slate-600">E-mail (non modifiable)</label><input value="${esc(u.email)}" disabled class="${K.input} bg-slate-50"></div>
+  <button onclick="saveProfile()" class="${K.btn}">Enregistrer</button></div>
+  <div class="${K.card} space-y-3"><div class="font-bold text-slate-900">Sécurité</div><p class="text-sm text-slate-500">Changez régulièrement votre mot de passe.</p><button onclick="OFF.pwdDialog(OFF.me().id)" class="${K.btn2}">${ic('key')} Changer le mot de passe</button></div></div>`;
+function saveProfile() {
+  const n = $('#p-name').value, c = $('#p-co').value; if (!n.trim() || !c.trim()) return OFF.toast('Nom et entreprise obligatoires.', 'err');
+  OFF.updateProfile(OFF.me().id, { name: n, company: c, phone: $('#p-ph').value }); OFF.toast('Profil enregistré.'); OFF.render();
+}
+</script>
+</body>
+</html>

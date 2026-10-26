@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administration — OFFIADS</title>
+<link rel="icon" href="assets/symbol.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>body{font-family:'Inter',system-ui,sans-serif}</style>
+</head>
+<body><p style="padding:2rem;font-family:sans-serif">Chargement…</p>
+<script src="js/geo.js"></script>
+<script src="js/core.js"></script>
+<script>
+const K = OFF.K, $ = OFF.$, da = OFF.da, fmt = OFF.fmt, esc = OFF.esc, ic = OFF.ic;
+const V = {};
+const D = () => OFF.D();
+const net = id => { const n = D().settings.networks.find(x => x.id === id); return n ? n.name : 'Tous les logiciels'; };
+const zone = c => c.zoneMode === 'national' ? "Toute l'Algérie" : c.zoneMode === 'region' ? 'Région ' + c.region : c.wilaya;
+const uname = id => { const u = D().users.find(x => x.id === id); return u ? u.company : id; };
+const head = (t, s, r) => `<div class="mb-6 flex flex-wrap items-end justify-between gap-3"><div><h1 class="text-2xl font-extrabold text-[#081726]">${t}</h1>${s ? `<p class="text-sm text-slate-500">${s}</p>` : ''}</div>${r || ''}</div>`;
+const kpi = (l, v, s) => `<div class="${K.card}"><div class="text-xs font-medium text-slate-500">${l}</div><div class="mt-1 text-2xl font-extrabold text-[#081726]">${v}</div>${s ? `<div class="mt-0.5 text-xs text-slate-400">${s}</div>` : ''}</div>`;
+const tbl = (heads, rows, empty) => `<div class="${K.card} overflow-hidden !p-0"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr>${heads.map(h => `<th class="${K.th}">${h}</th>`).join('')}</tr></thead><tbody class="divide-y divide-slate-100">${rows || `<tr><td colspan="${heads.length}" class="px-4 py-10 text-center text-slate-400">${empty}</td></tr>`}</tbody></table></div></div>`;
+const thumb = c => c.thumb ? `<img src="${c.thumb}" alt="" class="h-9 w-14 rounded object-cover">` : `<div class="flex h-9 w-14 items-center justify-center rounded bg-slate-100 text-slate-400">${ic('play')}</div>`;
+const b = (cls, fn, label, icon) => `<button class="${cls}" onclick="${fn}">${icon ? ic(icon, 'h-3.5 w-3.5') + ' ' : ''}${label}</button>`;
+
+OFF.ready.then(() => {
+  const u = OFF.guard('admin'); if (!u) return;
+  OFF.shell({
+    tag: 'Administration',
+    nav: [['dashboard', 'Tableau de bord', 'home'], ['campaigns', 'Campagnes', 'list'], ['advertisers', 'Annonceurs', 'users'], ['pharmacies', 'Pharmacies', 'pin'], ['pricing', 'Tarification', 'tag'], ['transactions', 'Transactions', 'wallet'], ['messages', 'Messages', 'mail'], ['logs', "Journal d'activité", 'act']],
+    badges: () => { const d = D(); return { campaigns: d.campaigns.filter(c => c.status === 'pending').length, transactions: d.transactions.filter(t => t.status === 'pending').length, messages: d.messages.filter(m => !m.read).length }; },
+    top: u => `<span class="hidden text-xs text-slate-500 sm:inline">${esc(u.email)}</span><button onclick="OFF.pwdDialog('${u.id}')" class="${K.btn2} !py-1.5">${ic('key')} Mot de passe</button>`
+  });
+  OFF.start(V, 'dashboard');
+});
+
+/* ---------- Tableau de bord ---------- */
+V.dashboard = () => {
+  const d = D(), cs = d.campaigns, adv = d.users.filter(u => u.role === 'advertiser'), ph = d.pharmacies, live = cs.filter(c => !['rejected', 'cancelled'].includes(c.status));
+  const ca = OFF.sum(live, 'fee') + OFF.sum(cs, 'spent'), imp = OFF.sum(cs, 'impressions'), pend = cs.filter(c => c.status === 'pending').length, pr = d.transactions.filter(t => t.status === 'pending').length;
+  const reg = {}; OFF.byWilaya(cs).forEach(x => { const r = OFF.WILAYAS[x.label]; reg[r] = (reg[r] || 0) + x.value; });
+  const alerts = [[pend, pend + ' campagne(s) à valider', '#/campaigns', 'bg-amber-500'], [pr, pr + ' demande(s) de recharge à traiter', '#/transactions', 'bg-amber-500'], [d.messages.filter(m => !m.read).length, d.messages.filter(m => !m.read).length + ' message(s) non lu(s)', '#/messages', 'bg-sky-500'], [ph.filter(p => !p.active).length, ph.filter(p => !p.active).length + ' pharmacie(s) inactive(s)', '#/pharmacies', 'bg-red-500']].filter(a => a[0]);
+  const html = head('Tableau de bord', 'Vue d\'ensemble de la plateforme OFFIADS.', `<div class="flex gap-2">${b(K.btn2, 'sim(200)', 'Simuler 200 affichages / campagne', 'play')}${b(K.btn2, 'sim(2000)', '× 2000', 'play')}</div>`) +
+    `<div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">${kpi('Campagnes actives', cs.filter(c => c.status === 'active').length, cs.length + ' au total')}${kpi('Annonceurs', adv.length)}${kpi('Pharmacies diffusant', ph.filter(p => p.active).length, 'sur ' + ph.length + ' enregistrées')}${kpi("Nombre d'affichages", fmt(imp), fmt(OFF.sum(cs, 'clicks')) + ' clics')}${kpi("Chiffre d'affaires", da(ca), 'frais fixes + diffusion')}</div>
+    <div class="mb-6 grid gap-6 lg:grid-cols-3"><div class="${K.card} lg:col-span-2"><div class="mb-3 font-bold text-slate-900">Évolution des affichages (14 jours)</div><div id="ch"></div></div><div class="${K.card}"><div class="mb-3 font-bold text-slate-900">Répartition par format</div><div id="dn"></div><div class="mb-3 mt-6 font-bold text-slate-900">Répartition par région</div><div id="rg"></div></div></div>
+    <div class="mb-6 ${K.card}"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><span class="font-bold text-slate-900">Carte du réseau : pharmacies actives par wilaya</span><a href="#/pharmacies" class="text-sm font-semibold text-[#009668]">Gérer les pharmacies →</a></div><div class="grid items-center gap-6 md:grid-cols-[320px_1fr]"><div id="nm"></div><div id="nr"></div></div></div>
+    <div class="mb-6 ${K.card}"><div class="mb-3 font-bold text-slate-900">Alertes système</div>${alerts.length ? alerts.map(a => `<a href="${a[2]}" class="flex items-center gap-3 border-b border-slate-50 py-2 text-sm hover:text-[#009668]"><span class="h-2 w-2 rounded-full ${a[3]}"></span>${a[1]}</a>`).join('') : '<p class="text-sm text-slate-400">Aucune alerte.</p>'}</div>
+    <div class="mb-3 flex items-center justify-between"><h2 class="font-bold text-slate-900">Campagnes récentes</h2><a href="#/campaigns" class="text-sm font-semibold text-[#009668]">Voir toutes les campagnes →</a></div>` + campTable(cs.slice(0, 5));
+  return { html, after: () => {
+    const s = OFF.series(cs, 14); OFF.line($('#ch'), s.labels, [s.imp, s.clk]);
+    OFF.donut($('#dn'), [{ label: 'Image / Bannière', value: OFF.sum(cs.filter(c => c.format === 'image'), 'impressions'), color: '#009668' }, { label: 'Vidéo', value: OFF.sum(cs.filter(c => c.format === 'video'), 'impressions'), color: '#00a3ff' }]);
+    OFF.hbars($('#rg'), OFF.byRegion(cs));
+    const act = ph.filter(p => p.active); $('#nm').innerHTML = GEO.dzMap({ vals: OFF.pharmByWilaya(act), unit: 'pharmacies', max: 320 });
+    const pr = {}; act.forEach(p => pr[p.region] = (pr[p.region] || 0) + 1);
+    OFF.hbars($('#nr'), GEO.REGS.map(r => ({ label: 'Région ' + r + ' (' + GEO.RW[r].length + ' wilayas)', value: pr[r] || 0, color: GEO.RCOL[r] })));
+  } };
+};
+function sim(n) {
+  const r = OFF.simulate(n);
+  OFF.toast(r.campaigns ? `Simulation : ${fmt(r.imp)} affichages et ${fmt(r.clk)} clics sur ${r.campaigns} campagne(s).` : 'Aucune campagne active à simuler. Approuvez d\'abord une campagne.', r.campaigns ? '' : 'err'); OFF.render();
+}
+
+/* ---------- Campagnes ---------- */
+const CS = ['Campagne', 'Annonceur', 'Format', 'Zone', 'Pharmacies', 'Total', 'Statut', ''];
+const cActions = c => {
+  let a = b(K.mini, `campInfo('${c.id}')`, 'Voir', 'eye');
+  if (c.status === 'pending') a += b(K.ok, `adm('approve','${c.id}')`, 'Approuver', 'check') + b(K.danger, `adm('reject','${c.id}')`, 'Rejeter', 'x');
+  if (c.status === 'active') a += b(K.mini, `adm('pause','${c.id}')`, 'Pause', 'pause');
+  if (c.status === 'paused') a += b(K.mini, `adm('resume','${c.id}')`, 'Reprendre', 'play');
+  if (c.status === 'active' || c.status === 'paused') a += b(K.danger, `adm('stop','${c.id}')`, 'Arrêter', 'stop');
+  return `<div class="flex flex-wrap justify-end gap-1.5">${a}</div>`;
+};
+const campTable = cs => tbl(CS, cs.map(c => `<tr class="hover:bg-slate-50/60"><td class="${K.td}"><div class="flex items-center gap-3">${thumb(c)}<div><div class="font-semibold text-slate-900">${esc(c.name)}</div><div class="text-xs text-slate-400">${c.id}</div></div></div></td><td class="${K.td}">${esc(uname(c.userId))}</td><td class="${K.td}">${c.format === 'video' ? 'Vidéo' : 'Image'}</td><td class="${K.td}">${esc(zone(c))}</td><td class="${K.td}">${c.pharmacies}</td><td class="${K.td} font-semibold">${da(c.total)}</td><td class="${K.td}">${OFF.badge(c.status)}</td><td class="${K.td}">${cActions(c)}</td></tr>`).join(''), 'Aucune campagne.');
+let CF = { q: '', st: '' };
+V.campaigns = () => ({
+  html: head('Campagnes', 'Vérifiez, approuvez et pilotez les campagnes des annonceurs.') + `<div class="mb-4 flex flex-wrap gap-3"><input id="cf-q" value="${esc(CF.q)}" oninput="cfSet()" placeholder="Rechercher (nom, annonceur, ID)…" class="${K.input} !w-72"><select id="cf-st" onchange="cfSet()" class="${K.input} !w-48"><option value="">Tous les statuts</option>${[['pending', 'En attente'], ['active', 'Active'], ['paused', 'En pause'], ['ended', 'Terminée'], ['rejected', 'Rejetée'], ['cancelled', 'Annulée']].map(s => `<option value="${s[0]}" ${CF.st === s[0] ? 'selected' : ''}>${s[1]}</option>`).join('')}</select></div><div id="cf-t"></div>`,
+  after: cfDraw
+});
+function cfSet() { CF.q = $('#cf-q').value; CF.st = $('#cf-st').value; cfDraw(); }
+function cfDraw() { const q = CF.q.toLowerCase(); $('#cf-t').innerHTML = campTable(D().campaigns.filter(c => (!CF.st || c.status === CF.st) && (!q || (c.name + ' ' + c.id + ' ' + uname(c.userId)).toLowerCase().includes(q)))); }
+async function adm(kind, id) {
+  const me = OFF.me().id;
+  try {
+    if (kind === 'reject') {
+      OFF.dialog('Rejeter la campagne', `<p class="mb-3 text-xs text-slate-500">L'annonceur sera intégralement remboursé. Indiquez le motif (visible par l'annonceur).</p><textarea id="rj" rows="3" class="${K.input}" placeholder="Ex : visuel non conforme à la réglementation…"></textarea>`,
+        [{ label: 'Annuler', cls: K.btn2 }, { label: 'Rejeter et rembourser', cls: 'rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700', fn: () => { try { OFF.campaignAction('reject', id, me, $('#rj').value); OFF.toast('Campagne rejetée, annonceur remboursé.'); OFF.render(); } catch (e) { OFF.fail(e); return false; } } }]);
+      return;
+    }
+    if (kind === 'stop' && !await OFF.ask('Arrêter la campagne', 'Le budget non consommé sera libéré sur le solde de l\'annonceur.', 'Arrêter', true)) return;
+    OFF.campaignAction(kind, id, me); OFF.toast({ approve: 'Campagne approuvée : diffusion démarrée.', pause: 'Campagne mise en pause.', resume: 'Campagne reprise.', stop: 'Campagne arrêtée.' }[kind]); OFF.render();
+  } catch (e) { OFF.fail(e); }
+}
+function campInfo(id) {
+  const c = D().campaigns.find(x => x.id === id); if (!c) return;
+  const row = (l, v) => `<div class="flex justify-between gap-3 border-b border-slate-50 py-1.5"><span class="text-slate-500">${l}</span><span class="text-right font-medium">${v}</span></div>`;
+  OFF.dialog(c.name, `<div id="ci-md" class="mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-xs text-slate-400">Chargement du visuel…</div>
+    <div class="mb-3">${OFF.badge(c.status)} <span class="ml-2 text-xs text-slate-400">${c.id}</span></div>
+    ${row('Annonceur', esc(uname(c.userId)))}${row('Titre / bouton', esc(c.headline || '—') + ' / ' + esc(c.cta))}${row('Lien', c.url ? `<a class="text-[#009668] underline" target="_blank" rel="noopener noreferrer" href="${esc(c.url)}">${esc(c.url)}</a>` : '—')}${row('Format', c.format === 'video' ? 'Vidéo' : 'Image')}${row('Zone', esc(zone(c)))}${row('Logiciel / réseau', esc(net(c.network)))}${row('Pharmacies × fréquence × durée', c.pharmacies + ' × ' + c.freq + '/j × ' + c.days + ' j')}${row('Affichages', fmt(c.impressions) + ' / ' + fmt(c.imp))}${row('Clics', fmt(c.clicks))}${row('CPM ajusté', da(c.cpm))}${row('Budget / dépensé', da(c.budget) + ' / ' + da(c.spent))}${row('Frais fixe', da(c.fee))}${row('Total payé', '<b>' + da(c.total) + '</b>')}${c.reason ? row('Motif de rejet', esc(c.reason)) : ''}${row('Période', c.startAt ? OFF.dt(c.startAt) + ' → ' + OFF.dt(c.endAt) : '—')}`,
+    [{ label: 'Fermer', cls: K.btn2 }], true);
+  OFF.media.get(c.id).then(m => { const el = $('#ci-md'); if (!el) return; if (!m) { el.textContent = 'Visuel absent de ce navigateur'; return; } const u = URL.createObjectURL(m); el.innerHTML = c.format === 'video' ? `<video src="${u}" controls muted class="h-full w-full object-cover"></video>` : `<img src="${u}" alt="" class="h-full w-full object-cover">`; });
+}
+
+/* ---------- Annonceurs ---------- */
+V.advertisers = () => {
+  const d = D(), us = d.users.filter(u => u.role === 'advertiser');
+  return head('Annonceurs', 'Comptes annonceurs, soldes et accès.') + tbl(['Entreprise', 'Contact', 'Inscrit le', 'Campagnes', 'Solde', 'Statut', ''], us.map(u => `<tr><td class="${K.td} font-semibold text-slate-900">${esc(u.company)}</td><td class="${K.td}">${esc(u.name)}<div class="text-xs text-slate-400">${esc(u.email)}${u.phone ? ' · ' + esc(u.phone) : ''}</div></td><td class="${K.td}">${OFF.dt(u.created)}</td><td class="${K.td}">${d.campaigns.filter(c => c.userId === u.id).length}</td><td class="${K.td} font-semibold">${da(u.wallet.available)}<div class="text-xs font-normal text-slate-400">réservé ${da(u.wallet.reserved)}</div></td><td class="${K.td}">${OFF.badge(u.status === 'active' ? 'active' : 'suspended')}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${b(K.mini, `credit('${u.id}')`, 'Créditer', 'plus')}${u.status === 'active' ? b(K.danger, `suspend('${u.id}',true)`, 'Suspendre', 'x') : b(K.ok, `suspend('${u.id}',false)`, 'Réactiver', 'check')}</div></td></tr>`).join(''), 'Aucun annonceur inscrit.');
+};
+function credit(id) {
+  OFF.dialog('Créditer le portefeuille', `<input id="cr" type="number" min="1" placeholder="Montant en DA" class="${K.input}">`, [{ label: 'Annuler', cls: K.btn2 }, { label: 'Créditer', fn: () => { try { OFF.manualCredit(id, $('#cr').value, OFF.me().id); OFF.toast('Portefeuille crédité.'); OFF.render(); } catch (e) { OFF.fail(e); return false; } } }]);
+}
+async function suspend(id, on) {
+  if (on && !await OFF.ask('Suspendre le compte', 'L\'annonceur ne pourra plus se connecter. Ses campagnes en cours continuent jusqu\'à leur terme sauf arrêt manuel.', 'Suspendre', true)) return;
+  OFF.mutate(d => { d.users.find(u => u.id === id).status = on ? 'suspended' : 'active'; OFF.log(OFF.me().id, (on ? 'Compte suspendu : ' : 'Compte réactivé : ') + id); });
+  OFF.toast(on ? 'Compte suspendu.' : 'Compte réactivé.'); OFF.render();
+}
+
+/* ---------- Pharmacies ---------- */
+let PF = { q: '', w: '', r: '', s: '' };
+V.pharmacies = () => {
+  const ph = D().pharmacies;
+  return { html: head('Pharmacies', 'Réseau de pharmacies diffusant les publicités.', b(K.btn, 'addPharm()', 'Ajouter une pharmacie', 'plus')) +
+    `<div class="mb-5 grid gap-4 sm:grid-cols-3">${kpi('Pharmacies', ph.length)}${kpi('Actives', ph.filter(p => p.active).length)}${kpi('Inactives', ph.filter(p => !p.active).length)}</div>
+    <div class="mb-4 flex flex-wrap gap-3"><input id="pf-q" value="${esc(PF.q)}" oninput="pfSet()" placeholder="Rechercher (nom, ID)…" class="${K.input} !w-64"><select id="pf-r" onchange="pfSet()" class="${K.input} !w-44"><option value="">Toutes les régions</option>${GEO.REGS.map(r => `<option ${PF.r === r ? 'selected' : ''}>${r}</option>`).join('')}</select><select id="pf-w" onchange="pfSet()" class="${K.input} !w-56"><option value="">Toutes les wilayas (${GEO.WL.length})</option>${GEO.wopts(PF.w)}</select><select id="pf-s" onchange="pfSet()" class="${K.input} !w-40"><option value="">Tous statuts</option><option value="1" ${PF.s === '1' ? 'selected' : ''}>Actives</option><option value="0" ${PF.s === '0' ? 'selected' : ''}>Inactives</option></select>${b(K.btn2, 'pfCsv()', 'Export CSV', 'dl')}</div>
+    <div class="mb-5 grid gap-4 lg:grid-cols-[340px_1fr]"><div class="${K.card}"><div class="mb-2 text-sm font-bold text-slate-900">Carte des pharmacies</div><div id="pf-map"></div><p class="mt-2 text-center text-[11px] text-slate-400">Cliquez une wilaya pour filtrer la liste.</p></div><div class="${K.card}"><div class="mb-3 text-sm font-bold text-slate-900">Pharmacies par région</div><div id="pf-reg"></div></div></div><p class="mb-3 text-xs text-slate-500">Le bouton « Lecteur » ouvre l'écran publicitaire d'une pharmacie (<code>player.html?pharmacy=ID</code>) : c'est cette page que le logiciel de pharmacie intègre pour afficher les campagnes et enregistrer affichages et clics.</p><div id="pf-t"></div>`, after: pfDraw };
+};
+function pfSet() { PF.q = $('#pf-q').value; PF.r = $('#pf-r').value; PF.w = $('#pf-w').value; PF.s = $('#pf-s').value; pfDraw(); }
+function pfPick(i) { PF.w = GEO.WL[i]; PF.r = ''; $('#pf-w').value = PF.w; $('#pf-r').value = ''; pfDraw(); }
+function pfList() { const q = PF.q.toLowerCase(); return D().pharmacies.filter(p => (!PF.w || p.wilaya === PF.w) && (!PF.r || p.region === PF.r) && (!PF.s || (PF.s === '1') === !!p.active) && (!q || (p.name + ' ' + p.id).toLowerCase().includes(q))); }
+function pfCsv() { const l = pfList(); OFF.csv([['ID', 'Nom', 'Code wilaya', 'Wilaya', 'Région', 'Réseau', 'Statut']].concat(l.map(p => [p.id, p.name, GEO.wcode(p.wilaya), p.wilaya, p.region, net(p.network), p.active ? 'Active' : 'Inactive'])), 'offiads-pharmacies-' + new Date().toISOString().slice(0, 10) + '.csv'); OFF.toast(l.length + ' pharmacie(s) exportée(s).'); }
+function pfDraw() {
+  const list = pfList(), m = $('#pf-map');
+  if (m) { m.innerHTML = GEO.dzMap({ click: 'pfPick', vals: OFF.pharmByWilaya(list), unit: 'pharmacies', one: PF.w, max: 320 }); const rc = {}; list.forEach(p => rc[p.region] = (rc[p.region] || 0) + 1); OFF.hbars($('#pf-reg'), GEO.REGS.map(r => ({ label: r, value: rc[r] || 0, color: GEO.RCOL[r] }))); }
+  $('#pf-t').innerHTML = tbl(['ID', 'Nom', 'Wilaya', 'Région', 'Logiciel / réseau', 'Statut', ''], list.slice(0, 200).map(p => `<tr><td class="${K.td} text-xs text-slate-500">${p.id}</td><td class="${K.td} font-semibold">${esc(p.name)}</td><td class="${K.td}">${esc(p.wilaya)}</td><td class="${K.td}">${p.region}</td><td class="${K.td}">${esc(net(p.network))}</td><td class="${K.td}">${p.active ? OFF.badge('active') : '<span class="rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-700">Inactive</span>'}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${b(K.mini, `togglePharm('${p.id}')`, p.active ? 'Désactiver' : 'Activer')}<a class="${K.mini}" target="_blank" rel="noopener" href="player.html?pharmacy=${p.id}">${ic('play', 'h-3.5 w-3.5')} Lecteur</a>${b(K.danger, `delPharm('${p.id}')`, '', 'trash')}</div></td></tr>`).join('') , 'Aucune pharmacie.') + (list.length > 200 ? `<p class="mt-2 text-xs text-slate-400">${list.length - 200} autres résultats : affinez la recherche.</p>` : '');
+}
+function togglePharm(id) { OFF.mutate(d => { const p = d.pharmacies.find(x => x.id === id); p.active = !p.active; OFF.log(OFF.me().id, (p.active ? 'Pharmacie activée : ' : 'Pharmacie désactivée : ') + id); }); pfDraw(); }
+async function delPharm(id) { if (!await OFF.ask('Supprimer la pharmacie', 'Elle ne fera plus partie du réseau de diffusion.', 'Supprimer', true)) return; OFF.mutate(d => { d.pharmacies = d.pharmacies.filter(p => p.id !== id); OFF.log(OFF.me().id, 'Pharmacie supprimée : ' + id); }); OFF.toast('Pharmacie supprimée.'); pfDraw(); }
+function addPharm() {
+  OFF.dialog('Ajouter une pharmacie', `<div class="space-y-3"><input id="np-n" placeholder="Nom de la pharmacie" class="${K.input}"><select id="np-w" class="${K.input}">${GEO.wopts('')}</select><select id="np-s" class="${K.input}">${D().settings.networks.map(n => `<option value="${n.id}">${esc(n.name)}</option>`).join('')}</select></div>`,
+    [{ label: 'Annuler', cls: K.btn2 }, { label: 'Ajouter', fn: () => {
+      const n = $('#np-n').value.trim(); if (!n) { OFF.toast('Nom obligatoire.', 'err'); return false; }
+      OFF.mutate(d => { const max = d.pharmacies.reduce((m, p) => Math.max(m, parseInt(p.id.slice(3), 10)), 0), w = $('#np-w').value; d.pharmacies.push({ id: 'PH-' + String(max + 1).padStart(4, '0'), name: n, wilaya: w, region: OFF.WILAYAS[w], network: $('#np-s').value, active: true }); OFF.log(OFF.me().id, 'Pharmacie ajoutée : ' + n); });
+      OFF.toast('Pharmacie ajoutée.'); OFF.render(); } }]);
+}
+
+/* ---------- Tarification ---------- */
+let PN = [];
+V.pricing = () => {
+  const s = D().settings; PN = JSON.parse(JSON.stringify(s.networks));
+  const num = (id, label, v, step) => `<div><label class="mb-1 block text-xs font-semibold text-slate-600">${label}</label><input id="${id}" type="number" step="${step || 'any'}" min="0" value="${v}" oninput="pcalc()" class="${K.input}"></div>`;
+  const html = head('Tarification', 'Pricing engine : CPM, frais fixe et coefficients (modèle du rapport de tarification).', `<div class="flex gap-2">${b(K.btn2, 'resetPricing()', 'Valeurs par défaut')}${b(K.btn, 'savePricing()', 'Enregistrer', 'check')}</div>`) +
+    `<div class="grid gap-6 xl:grid-cols-[1fr_360px]"><div class="space-y-5">
+    <div class="${K.card}"><div class="mb-3 font-bold text-slate-900">CPM et frais fixe</div><div class="grid gap-3 sm:grid-cols-2">${num('t-cpm', 'CPM de base (DA / 1 000 affichages)', s.cpm)}${num('t-fee', 'Frais fixe OFFIADS (DA)', s.fee)}</div></div>
+    <div class="${K.card}"><div class="mb-3 font-bold text-slate-900">Coefficients de zone</div><div class="grid gap-3 sm:grid-cols-3">${num('t-zn', 'Toute l\'Algérie', s.zone.national)}${num('t-zw', 'Wilaya', s.zone.wilaya)}<span></span>${Object.keys(OFF.REGIONS).map(r => num('t-zr-' + r, 'Région ' + r, s.zone.regions[r])).join('')}</div></div>
+    <div class="${K.card}"><div class="mb-3 font-bold text-slate-900">Coefficients de format</div><div class="grid gap-3 sm:grid-cols-2">${num('t-fi', 'Image / Bannière', s.format.image)}${num('t-fv', 'Vidéo', s.format.video)}</div></div>
+    <div class="${K.card}"><div class="mb-3 flex items-center justify-between"><span class="font-bold text-slate-900">Logiciels / réseaux partenaires</span>${b(K.mini, 'addNet()', 'Ajouter', 'plus')}</div><div id="t-nets" class="space-y-2"></div></div>
+    <div class="${K.card}"><div class="mb-3 font-bold text-slate-900">Limites</div><div class="grid gap-3 sm:grid-cols-2">${num('t-mf', 'Fréquence maximale (par jour)', s.maxFreq, 1)}${num('t-mb', 'Budget publicitaire minimum (DA)', s.minBudget, 1)}${num('t-mp', 'Pharmacies minimum', s.minPharm, 1)}${num('t-xp', 'Pharmacies maximum', s.maxPharm, 1)}</div></div>
+    <div class="${K.card}"><div class="mb-2 font-bold text-slate-900">Coordonnées de paiement (affichées aux annonceurs)</div><textarea id="t-pay" rows="3" class="${K.input}">${esc(s.payInfo)}</textarea></div></div>
+    <aside class="xl:sticky xl:top-20 xl:self-start"><div class="${K.card}"><div class="mb-3 font-bold text-slate-900">Simulateur de prix</div><div class="space-y-2.5">
+    <div class="grid grid-cols-3 gap-2"><input id="c-ph" type="number" value="500" min="1" oninput="pcalc()" class="${K.input}" title="Pharmacies"><input id="c-d" type="number" value="30" min="1" oninput="pcalc()" class="${K.input}" title="Jours"><input id="c-f" type="number" value="5" min="1" oninput="pcalc()" class="${K.input}" title="Fréquence / jour"></div>
+    <div class="text-[11px] text-slate-400">Pharmacies · jours · fréquence/jour</div>
+    <select id="c-fmt" onchange="pcalc()" class="${K.input}"><option value="image">Image</option><option value="video">Vidéo</option></select>
+    <select id="c-z" onchange="pcalc()" class="${K.input}"><option value="national">Toute l'Algérie</option><option value="wilaya">Wilaya</option>${Object.keys(OFF.REGIONS).map(r => `<option value="r:${r}">Région ${r}</option>`).join('')}</select></div>
+    <div id="c-out" class="mt-4 space-y-1.5 border-t border-slate-100 pt-3 text-sm"></div></div></aside></div>`;
+  return { html, after: () => { netDraw(); pcalc(); } };
+};
+function netDraw() {
+  $('#t-nets').innerHTML = PN.map((n, i) => `<div class="flex items-center gap-2"><span class="w-9 text-xs text-slate-400">${n.id}</span><input value="${esc(n.name)}" oninput="PN[${i}].name=this.value" class="${K.input}"><input type="number" step="any" min="0" value="${n.coef}" oninput="PN[${i}].coef=parseFloat(this.value);pcalc()" class="${K.input} !w-24" title="Coefficient"><button onclick="delNet(${i})" class="${K.danger}" aria-label="Supprimer">${ic('trash', 'h-3.5 w-3.5')}</button></div>`).join('') || '<p class="text-sm text-slate-400">Aucun réseau.</p>';
+}
+function addNet() { const m = PN.reduce((a, n) => Math.max(a, parseInt(n.id.slice(1), 10) || 0), 0) + 1; PN.push({ id: 'N' + m, name: 'Nouveau logiciel', coef: 1.1 }); netDraw(); }
+function delNet(i) { PN.splice(i, 1); netDraw(); }
+function readPricing() {
+  const g = id => parseFloat($('#' + id).value), s = { cpm: g('t-cpm'), fee: g('t-fee'), zone: { national: g('t-zn'), wilaya: g('t-zw'), regions: {} }, format: { image: g('t-fi'), video: g('t-fv') }, networks: PN.map(n => ({ id: n.id, name: String(n.name).trim(), coef: n.coef })), maxFreq: g('t-mf'), minBudget: g('t-mb'), minPharm: g('t-mp'), maxPharm: g('t-xp'), payInfo: $('#t-pay').value };
+  Object.keys(OFF.REGIONS).forEach(r => s.zone.regions[r] = g('t-zr-' + r));
+  return s;
+}
+function checkPricing(s) {
+  const nums = [s.cpm, s.zone.national, s.zone.wilaya, s.format.image, s.format.video, s.maxFreq, s.minBudget, s.minPharm, s.maxPharm].concat(Object.values(s.zone.regions), s.networks.map(n => n.coef));
+  if (nums.some(v => !(v > 0))) return 'Toutes les valeurs numériques doivent être renseignées et supérieures à 0.';
+  if (!(s.fee >= 0)) return 'Le frais fixe doit être ≥ 0.';
+  if (s.networks.some(n => !n.name)) return 'Chaque réseau doit avoir un nom.';
+  if (s.minPharm > s.maxPharm) return 'Pharmacies minimum > maximum.';
+  if (!Number.isInteger(s.maxFreq) || !Number.isInteger(s.minPharm) || !Number.isInteger(s.maxPharm)) return 'Fréquence et nombres de pharmacies : entiers uniquement.';
+  return '';
+}
+function pcalc() {
+  const o = $('#c-out'); if (!o) return;
+  const s = readPricing(), e = checkPricing(s); if (e) { o.innerHTML = `<span class="text-xs text-red-600">${e}</span>`; return; }
+  const z = $('#c-z').value, q = { format: $('#c-fmt').value, zoneMode: z.startsWith('r:') ? 'region' : z, region: z.slice(2), network: 'all', pharmacies: +$('#c-ph').value || 0, days: +$('#c-d').value || 0, freq: +$('#c-f').value || 0 }, p = OFF.price(q, s);
+  const r = (l, v, bold) => `<div class="flex justify-between"><span class="text-slate-500">${l}</span><span class="${bold ? 'font-extrabold text-[#009668]' : 'font-semibold'}">${v}</span></div>`;
+  o.innerHTML = r('Impressions estimées', fmt(p.imp)) + r('CPM ajusté', da(p.cpm)) + r('Budget publicitaire', da(p.budget)) + r('Frais fixe', da(p.fee)) + r('Total', da(p.total), 1);
+}
+function savePricing() { const s = readPricing(), e = checkPricing(s); if (e) return OFF.toast(e, 'err'); OFF.saveSettings(s, OFF.me().id); OFF.toast('Tarification enregistrée. Elle s\'applique aux nouvelles campagnes.'); OFF.render(); }
+async function resetPricing() { if (!await OFF.ask('Valeurs par défaut', 'Rétablir tous les paramètres de tarification du rapport (CPM 500 DA, frais fixe 2 000 DA, coefficients) ?', 'Rétablir')) return; OFF.resetSettings(OFF.me().id); OFF.toast('Valeurs par défaut rétablies.'); OFF.render(); }
+
+/* ---------- Transactions ---------- */
+const TX = { recharge: 'Recharge', fee: 'Frais fixe', reserve: 'Budget réservé', release: 'Budget libéré', refund: 'Remboursement' };
+V.transactions = () => {
+  const tx = D().transactions, pend = tx.filter(t => t.status === 'pending');
+  return head('Transactions', 'Demandes de recharge et historique des mouvements.') +
+    `<div class="mb-2 font-bold text-slate-900">Recharges en attente</div>` + tbl(['Date', 'Annonceur', 'Détail', 'Montant', ''], pend.map(t => `<tr><td class="${K.td}">${OFF.dtt(t.date)}</td><td class="${K.td} font-semibold">${esc(uname(t.userId))}</td><td class="${K.td}">${esc(t.label)}</td><td class="${K.td} font-semibold">${da(t.amount)}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${b(K.ok, `rc('${t.id}',true)`, 'Confirmer le paiement', 'check')}${b(K.danger, `rc('${t.id}',false)`, 'Refuser', 'x')}</div></td></tr>`).join(''), 'Aucune demande en attente.') +
+    `<div class="mb-2 mt-8 font-bold text-slate-900">Historique</div>` + tbl(['Date', 'Annonceur', 'Type', 'Détail', 'Montant', 'Statut'], tx.slice(0, 300).map(t => `<tr><td class="${K.td} whitespace-nowrap">${OFF.dtt(t.date)}</td><td class="${K.td}">${esc(uname(t.userId))}</td><td class="${K.td}">${TX[t.type] || t.type}</td><td class="${K.td}">${esc(t.label)}</td><td class="${K.td} font-semibold ${t.amount < 0 ? '' : 'text-[#009668]'}">${t.amount > 0 ? '+' : ''}${da(t.amount)}</td><td class="${K.td}">${t.status === 'pending' ? OFF.badge('pending') : t.status === 'rejected' ? OFF.badge('rejected') : OFF.badge('ok')}</td></tr>`).join(''), 'Aucune transaction.');
+};
+function rc(id, ok) { try { OFF.resolveRecharge(id, ok, OFF.me().id); OFF.toast(ok ? 'Recharge confirmée : portefeuille crédité.' : 'Recharge refusée.'); OFF.render(); } catch (e) { OFF.fail(e); } }
+
+/* ---------- Messages & journal ---------- */
+V.messages = () => head('Messages', 'Demandes reçues depuis le formulaire de contact du site.') +
+  tbl(['Date', 'Nom', 'E-mail', 'Message', ''], D().messages.map(m => `<tr class="${m.read ? '' : 'bg-emerald-50/40'}"><td class="${K.td} whitespace-nowrap">${OFF.dtt(m.date)}</td><td class="${K.td} font-semibold">${esc(m.name)}</td><td class="${K.td}"><a class="text-[#009668]" href="mailto:${esc(m.email)}">${esc(m.email)}</a></td><td class="${K.td} max-w-md whitespace-pre-line">${esc(m.msg)}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${m.read ? '' : b(K.mini, `msg('${m.id}','read')`, 'Marquer lu', 'check')}${b(K.danger, `msg('${m.id}','del')`, '', 'trash')}</div></td></tr>`).join(''), 'Aucun message.');
+function msg(id, k) { OFF.mutate(d => { if (k === 'read') d.messages.find(m => m.id === id).read = true; else d.messages = d.messages.filter(m => m.id !== id); }); OFF.render(); }
+V.logs = () => { const d = D(); return head("Journal d'activité", 'Dernières actions sur la plateforme.') + tbl(['Date', 'Utilisateur', 'Action'], d.logs.slice(0, 200).map(l => { const u = d.users.find(x => x.id === l.userId); return `<tr><td class="${K.td} whitespace-nowrap">${OFF.dtt(l.date)}</td><td class="${K.td}">${esc(u ? u.company + ' (' + u.email + ')' : l.userId)}</td><td class="${K.td}">${esc(l.action)}</td></tr>`; }).join(''), 'Aucune activité.'); };
+</script>
+</body>
+</html>

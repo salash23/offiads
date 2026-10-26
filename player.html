@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecteur OFFIADS</title>
+<link rel="icon" href="assets/symbol.png">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,system-ui,sans-serif;background:#081726;color:#fff;overflow:hidden}
+#stage{position:relative;height:100%;width:100%}
+#media{position:absolute;inset:0}#media img,#media video{width:100%;height:100%;object-fit:cover}
+#shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,.05) 60%)}
+#txt{position:absolute;left:5%;right:5%;bottom:8%}
+#hl{font-size:clamp(20px,4.5vw,44px);font-weight:800;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+#cta{margin-top:14px;display:inline-block;border:0;border-radius:10px;background:#0ea5e9;color:#fff;font-weight:700;font-size:clamp(13px,1.8vw,18px);padding:10px 22px;cursor:pointer}
+#cta:hover{background:#0284c7}
+#tag{position:absolute;top:10px;right:12px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:99px}
+#idle{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:15px;color:#cbd5e1;background:#0e2439}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="media"></div><div id="shade"></div>
+  <div id="tag">Publicité · OFFIADS</div>
+  <div id="txt"><div id="hl"></div><button id="cta" type="button"></button></div>
+  <div id="idle"></div>
+</div>
+<script src="js/geo.js"></script>
+<script src="js/core.js"></script>
+<script>
+/* Lecteur : à intégrer dans le logiciel de pharmacie (iframe / webview) :
+   <iframe src="https://VOTRE-DOMAINE/player.html?pharmacy=PH-0001" ...>  — &rotate=8 pour changer la durée (secondes) */
+const q = new URLSearchParams(location.search), PID = q.get('pharmacy'), ROT = Math.max(4, parseInt(q.get('rotate'), 10) || 8);
+const el = id => document.getElementById(id);
+let cur = null, url = '';
+function idle(msg) { cur = null; el('idle').style.display = 'flex'; el('idle').textContent = msg; }
+async function show(c) {
+  el('idle').style.display = 'none'; cur = c;
+  el('hl').textContent = c.headline || ''; el('cta').textContent = c.cta || 'Découvrir'; el('cta').style.display = c.cta ? 'inline-block' : 'none';
+  const blob = await OFF.media.get(c.id); if (url) URL.revokeObjectURL(url);
+  const m = el('media'); m.innerHTML = '';
+  if (!blob) { m.style.background = 'linear-gradient(135deg,#0e2439,#009668)'; }
+  else { url = URL.createObjectURL(blob); m.innerHTML = c.format === 'video' ? `<video src="${url}" autoplay muted loop playsinline></video>` : `<img src="${url}" alt="">`; }
+  OFF.record(c.id, PID, 'imp'); // 1 affichage = 1 impression facturée
+}
+async function cycle() {
+  if (!PID) return idle('Paramètre manquant : player.html?pharmacy=PH-0001');
+  const c = OFF.pickAd(PID);
+  if (!c) return idle('Aucune publicité à afficher pour cette pharmacie pour le moment.');
+  await show(c);
+}
+el('cta').onclick = () => { if (!cur) return; OFF.record(cur.id, PID, 'click'); if (cur.url) window.open(cur.url, '_blank', 'noopener'); };
+OFF.ready.then(() => { cycle(); setInterval(cycle, ROT * 1000); });
+</script>
+</body>
+</html>
