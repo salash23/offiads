@@ -164,6 +164,24 @@ async function wFile(inp) {
   if (f.type === 'video/mp4') { if (f.size > 15e6) return bad('Vidéo trop lourde (15 Mo maximum).'); const d = await OFF.media.duration(f); if (!(d <= 30)) return bad('La vidéo doit durer 30 secondes maximum.'); }
   if (W.pv) URL.revokeObjectURL(W.pv); W.file = f; W.pv = URL.createObjectURL(f); wSync(); wPreview(); OFF.toast('Visuel chargé : ' + f.name);
 }
+// Cloudinary unsigned upload. Keep API Secret out of browser code.
+const OFFIADS_CLOUDINARY_CLOUD = 'e615lb8g';
+const OFFIADS_CLOUDINARY_PRESET = 'offiads_campaigns';
+async function uploadCampaignMedia(file) {
+  const resource = file.type.startsWith('video/') ? 'video' : 'image';
+  const endpoint = `https://api.cloudinary.com/v1_1/${OFFIADS_CLOUDINARY_CLOUD}/${resource}/upload`;
+  const body = new FormData();
+  body.append('file', file);
+  body.append('upload_preset', OFFIADS_CLOUDINARY_PRESET);
+  body.append('folder', 'offiads/campaigns');
+  const response = await fetch(endpoint, { method: 'POST', body });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.secure_url) {
+    throw new Error(result.error?.message || 'Échec de l’envoi du visuel vers Cloudinary. Vérifiez le preset unsigned et ses restrictions.');
+  }
+  return result.secure_url;
+}
+
 async function wSubmit() {
   const u = OFF.me(), p = OFF.price(W), err = m => OFF.toast(m, 'err');
   W.name = $('#w-name').value.trim(); W.headline = $('#w-head').value.trim(); W.cta = $('#w-cta').value.trim() || 'Découvrir'; W.url = $('#w-url').value.trim();
@@ -176,8 +194,9 @@ async function wSubmit() {
   if (!await OFF.ask('Valider et payer', `Vous allez payer <b>${da(p.total)}</b> : ${da(p.fee)} de frais fixe (débités maintenant) et ${da(p.budget)} de budget publicitaire (réservé, consommé selon la diffusion réelle). La campagne sera ensuite vérifiée par OFFIADS.`, 'Valider et payer')) return;
   const btn = $('#w-pay'); btn.disabled = true; const id = OFF.uid('C');
   try {
+    const mediaUrl = await uploadCampaignMedia(W.file);
     await OFF.media.put(id, W.file); const thumb = await OFF.media.thumb(W.file);
-    const c = OFF.createCampaign(u.id, { name: W.name, format: W.format, zoneMode: W.zoneMode, wilaya: W.zoneMode === 'wilaya' ? W.wilaya : '', region: W.zoneMode === 'region' ? W.region : '', network: W.network, pharmacies: W.pharmacies, days: Number(W.days), freq: Number(W.freq), headline: W.headline, cta: W.cta, url: W.url, mediaType: W.file.type, mediaName: W.file.name, thumb }, id);
+    const c = OFF.createCampaign(u.id, { name: W.name, format: W.format, mediaUrl, zoneMode: W.zoneMode, wilaya: W.zoneMode === 'wilaya' ? W.wilaya : '', region: W.zoneMode === 'region' ? W.region : '', network: W.network, pharmacies: W.pharmacies, days: Number(W.days), freq: Number(W.freq), headline: W.headline, cta: W.cta, url: W.url, mediaType: W.file.type, mediaName: W.file.name, thumb }, id);
     wClear(true); W = null; OFF.toast('Campagne envoyée pour validation (' + da(c.total) + ' débités/réservés).'); location.hash = '#/campaign/' + c.id;
   } catch (e) { OFF.media.del(id); OFF.fail(e); btn.disabled = false; }
 }
@@ -219,7 +238,7 @@ V.campaign = (id, u) => {
     <div class="${K.card} lg:col-span-2"><div class="mb-3 font-bold text-slate-900">Affichages par wilaya</div><div class="grid gap-4 sm:grid-cols-2"><div id="bm"></div><div id="bw"></div></div></div></div>`;
   return { html, after: () => {
     const s = OFF.series([c], 14); OFF.line($('#ch'), s.labels, [s.imp, s.clk]); OFF.hbars($('#bw'), OFF.byWilaya([c]).slice(0, 8)); const v = {}; OFF.byWilaya([c]).forEach(x => v[x.label] = x.value); $('#bm').innerHTML = GEO.dzMap({ vals: v, max: 280 });
-    OFF.media.get(c.id).then(b => { const m = $('#md'); if (!m) return; if (!b) { m.textContent = 'Visuel indisponible sur cet appareil'; return; } const url = URL.createObjectURL(b); m.innerHTML = c.format === 'video' ? `<video src="${url}" controls muted class="h-full w-full object-cover"></video>` : `<img src="${url}" alt="" class="h-full w-full object-cover">`; }).catch(() => { $('#md').textContent = 'Visuel indisponible'; });
+    if (c.mediaUrl) { const m = $('#md'); if (m) m.innerHTML = c.format === 'video' ? `<video src="${OFF.esc(c.mediaUrl)}" controls muted class="h-full w-full object-cover"></video>` : `<img src="${OFF.esc(c.mediaUrl)}" alt="" class="h-full w-full object-cover">`; } else { OFF.media.get(c.id).then(b => { const m = $('#md'); if (!m) return; if (!b) { m.textContent = 'Visuel indisponible sur cet appareil'; return; } const url = URL.createObjectURL(b); m.innerHTML = c.format === 'video' ? `<video src="${url}" controls muted class="h-full w-full object-cover"></video>` : `<img src="${url}" alt="" class="h-full w-full object-cover">`; }).catch(() => { $('#md').textContent = 'Visuel indisponible'; }); }
   } };
 };
 

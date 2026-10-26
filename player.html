@@ -36,10 +36,11 @@ function idle(msg) { cur = null; el('idle').style.display = 'flex'; el('idle').t
 async function show(c) {
   el('idle').style.display = 'none'; cur = c;
   el('hl').textContent = c.headline || ''; el('cta').textContent = c.cta || 'Découvrir'; el('cta').style.display = c.cta ? 'inline-block' : 'none';
-  const blob = await OFF.media.get(c.id); if (url) URL.revokeObjectURL(url);
+  const blob = c.mediaUrl ? null : await OFF.media.get(c.id); if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
   const m = el('media'); m.innerHTML = '';
-  if (!blob) { m.style.background = 'linear-gradient(135deg,#0e2439,#009668)'; }
-  else { url = URL.createObjectURL(blob); m.innerHTML = c.format === 'video' ? `<video src="${url}" autoplay muted loop playsinline></video>` : `<img src="${url}" alt="">`; }
+  if (c.mediaUrl) { const safeUrl = String(c.mediaUrl); m.innerHTML = c.format === 'video' ? `<video src="${safeUrl}" autoplay muted loop playsinline></video>` : `<img src="${safeUrl}" alt="">`; }
+  else if (blob) { url = URL.createObjectURL(blob); m.innerHTML = c.format === 'video' ? `<video src="${url}" autoplay muted loop playsinline></video>` : `<img src="${url}" alt="">`; }
+  else { m.style.background = 'linear-gradient(135deg,#0e2439,#009668)'; }
   OFF.record(c.id, PID, 'imp'); // 1 affichage = 1 impression facturée
 }
 async function cycle() {
