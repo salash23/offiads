@@ -10,6 +10,7 @@
 </head>
 <body><p style="padding:2rem;font-family:sans-serif">Chargement…</p>
 <script src="js/geo.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/core.js"></script>
 <script>
 const K = OFF.K, $ = OFF.$, da = OFF.da, fmt = OFF.fmt, esc = OFF.esc, ic = OFF.ic;
@@ -84,11 +85,11 @@ async function adm(kind, id) {
   try {
     if (kind === 'reject') {
       OFF.dialog('Rejeter la campagne', `<p class="mb-3 text-xs text-slate-500">L'annonceur sera intégralement remboursé. Indiquez le motif (visible par l'annonceur).</p><textarea id="rj" rows="3" class="${K.input}" placeholder="Ex : visuel non conforme à la réglementation…"></textarea>`,
-        [{ label: 'Annuler', cls: K.btn2 }, { label: 'Rejeter et rembourser', cls: 'rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700', fn: () => { try { OFF.campaignAction('reject', id, me, $('#rj').value); OFF.toast('Campagne rejetée, annonceur remboursé.'); OFF.render(); } catch (e) { OFF.fail(e); return false; } } }]);
+        [{ label: 'Annuler', cls: K.btn2 }, { label: 'Rejeter et rembourser', cls: 'rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700', fn: async () => { try { await OFF.campaignAction('reject', id, me, $('#rj').value); OFF.toast('Campagne rejetée, annonceur remboursé.'); OFF.render(); } catch (e) { OFF.fail(e); return false; } } }]);
       return;
     }
     if (kind === 'stop' && !await OFF.ask('Arrêter la campagne', 'Le budget non consommé sera libéré sur le solde de l\'annonceur.', 'Arrêter', true)) return;
-    OFF.campaignAction(kind, id, me); OFF.toast({ approve: 'Campagne approuvée : diffusion démarrée.', pause: 'Campagne mise en pause.', resume: 'Campagne reprise.', stop: 'Campagne arrêtée.' }[kind]); OFF.render();
+    await OFF.campaignAction(kind, id, me); OFF.toast({ approve: 'Campagne approuvée : diffusion démarrée.', pause: 'Campagne mise en pause.', resume: 'Campagne reprise.', stop: 'Campagne arrêtée.' }[kind]); OFF.render();
   } catch (e) { OFF.fail(e); }
 }
 function campInfo(id) {
@@ -104,15 +105,18 @@ function campInfo(id) {
 /* ---------- Annonceurs ---------- */
 V.advertisers = () => {
   const d = D(), us = d.users.filter(u => u.role === 'advertiser');
-  return head('Annonceurs', 'Comptes annonceurs, soldes et accès.') + tbl(['Entreprise', 'Contact', 'Inscrit le', 'Campagnes', 'Solde', 'Statut', ''], us.map(u => `<tr><td class="${K.td} font-semibold text-slate-900">${esc(u.company)}</td><td class="${K.td}">${esc(u.name)}<div class="text-xs text-slate-400">${esc(u.email)}${u.phone ? ' · ' + esc(u.phone) : ''}</div></td><td class="${K.td}">${OFF.dt(u.created)}</td><td class="${K.td}">${d.campaigns.filter(c => c.userId === u.id).length}</td><td class="${K.td} font-semibold">${da(u.wallet.available)}<div class="text-xs font-normal text-slate-400">réservé ${da(u.wallet.reserved)}</div></td><td class="${K.td}">${OFF.badge(u.status === 'active' ? 'active' : 'suspended')}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${b(K.mini, `credit('${u.id}')`, 'Créditer', 'plus')}${u.status === 'active' ? b(K.danger, `suspend('${u.id}',true)`, 'Suspendre', 'x') : b(K.ok, `suspend('${u.id}',false)`, 'Réactiver', 'check')}</div></td></tr>`).join(''), 'Aucun annonceur inscrit.');
+  return head('Annonceurs', 'Comptes annonceurs, soldes et accès.') + tbl(['Entreprise', 'Contact', 'Inscrit le', 'Campagnes', 'Solde', 'Statut', ''], us.map(u => `<tr><td class="${K.td} font-semibold text-slate-900">${esc(u.company)}</td><td class="${K.td}">${esc(u.name)}<div class="text-xs text-slate-400">${esc(u.email)}${u.phone ? ' · ' + esc(u.phone) : ''}</div></td><td class="${K.td}">${OFF.dt(u.created)}</td><td class="${K.td}">${d.campaigns.filter(c => c.userId === u.id).length}</td><td class="${K.td} font-semibold">${da(u.wallet.available)}<div class="text-xs font-normal text-slate-400">réservé ${da(u.wallet.reserved)}</div></td><td class="${K.td}">${OFF.badge(u.status === 'active' ? 'active' : u.status === 'pending' ? 'En attente' : u.status === 'rejected' ? 'Refusé' : 'suspended')}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${u.status === 'pending' ? b(K.ok, `suspend('${u.id}',false)`, 'Approuver', 'check') + b(K.danger, `rejectAccount('${u.id}')`, 'Refuser', 'x') : ''}${u.status !== 'pending' ? b(K.mini, `credit('${u.id}')`, 'Créditer', 'plus') + (u.status === 'active' ? b(K.danger, `suspend('${u.id}',true)`, 'Suspendre', 'x') : b(K.ok, `suspend('${u.id}',false)`, 'Réactiver', 'check')) : ''}</div></td></tr>`).join(''), 'Aucun annonceur inscrit.');
 };
 function credit(id) {
-  OFF.dialog('Créditer le portefeuille', `<input id="cr" type="number" min="1" placeholder="Montant en DA" class="${K.input}">`, [{ label: 'Annuler', cls: K.btn2 }, { label: 'Créditer', fn: () => { try { OFF.manualCredit(id, $('#cr').value, OFF.me().id); OFF.toast('Portefeuille crédité.'); OFF.render(); } catch (e) { OFF.fail(e); return false; } } }]);
+  OFF.dialog('Créditer le portefeuille', `<input id="cr" type="number" min="1" placeholder="Montant en DA" class="${K.input}">`, [{ label: 'Annuler', cls: K.btn2 }, { label: 'Créditer', fn: async () => { try { await OFF.manualCredit(id, $('#cr').value, OFF.me().id); OFF.toast('Portefeuille crédité.'); OFF.render(); } catch (e) { OFF.fail(e); return false; } } }]);
+}
+async function rejectAccount(id) {
+  if (!await OFF.ask('Refuser la création du compte', 'L’annonceur ne pourra pas accéder à son espace.', 'Refuser', true)) return;
+  try { await OFF.setUserStatus(id, 'rejected'); OFF.toast('Demande refusée.'); OFF.render(); } catch(e) { OFF.fail(e); }
 }
 async function suspend(id, on) {
   if (on && !await OFF.ask('Suspendre le compte', 'L\'annonceur ne pourra plus se connecter. Ses campagnes en cours continuent jusqu\'à leur terme sauf arrêt manuel.', 'Suspendre', true)) return;
-  OFF.mutate(d => { d.users.find(u => u.id === id).status = on ? 'suspended' : 'active'; OFF.log(OFF.me().id, (on ? 'Compte suspendu : ' : 'Compte réactivé : ') + id); });
-  OFF.toast(on ? 'Compte suspendu.' : 'Compte réactivé.'); OFF.render();
+  try { await OFF.setUserStatus(id, on ? 'suspended' : 'active'); OFF.toast(on ? 'Compte suspendu.' : 'Compte réactivé.'); OFF.render(); } catch(e) { OFF.fail(e); }
 }
 
 /* ---------- Pharmacies ---------- */
@@ -122,7 +126,7 @@ V.pharmacies = () => {
   return { html: head('Pharmacies', 'Réseau de pharmacies diffusant les publicités.', b(K.btn, 'addPharm()', 'Ajouter une pharmacie', 'plus')) +
     `<div class="mb-5 grid gap-4 sm:grid-cols-3">${kpi('Pharmacies', ph.length)}${kpi('Actives', ph.filter(p => p.active).length)}${kpi('Inactives', ph.filter(p => !p.active).length)}</div>
     <div class="mb-4 flex flex-wrap gap-3"><input id="pf-q" value="${esc(PF.q)}" oninput="pfSet()" placeholder="Rechercher (nom, ID)…" class="${K.input} !w-64"><select id="pf-r" onchange="pfSet()" class="${K.input} !w-44"><option value="">Toutes les régions</option>${GEO.REGS.map(r => `<option ${PF.r === r ? 'selected' : ''}>${r}</option>`).join('')}</select><select id="pf-w" onchange="pfSet()" class="${K.input} !w-56"><option value="">Toutes les wilayas (${GEO.WL.length})</option>${GEO.wopts(PF.w)}</select><select id="pf-s" onchange="pfSet()" class="${K.input} !w-40"><option value="">Tous statuts</option><option value="1" ${PF.s === '1' ? 'selected' : ''}>Actives</option><option value="0" ${PF.s === '0' ? 'selected' : ''}>Inactives</option></select>${b(K.btn2, 'pfCsv()', 'Export CSV', 'dl')}</div>
-    <div class="mb-5 grid gap-4 lg:grid-cols-[340px_1fr]"><div class="${K.card}"><div class="mb-2 text-sm font-bold text-slate-900">Carte des pharmacies</div><div id="pf-map"></div><p class="mt-2 text-center text-[11px] text-slate-400">Cliquez une wilaya pour filtrer la liste.</p></div><div class="${K.card}"><div class="mb-3 text-sm font-bold text-slate-900">Pharmacies par région</div><div id="pf-reg"></div></div></div><p class="mb-3 text-xs text-slate-500">Le bouton « Lecteur » ouvre l'écran publicitaire d'une pharmacie (<code>player.html?pharmacy=ID</code>) : c'est cette page que le logiciel de pharmacie intègre pour afficher les campagnes et enregistrer affichages et clics.</p><div id="pf-t"></div>`, after: pfDraw };
+    <div class="mb-5 grid gap-4 lg:grid-cols-[340px_1fr]"><div class="${K.card}"><div class="mb-2 text-sm font-bold text-slate-900">Carte des pharmacies</div><div id="pf-map"></div><p class="mt-2 text-center text-[11px] text-slate-400">Cliquez une wilaya pour filtrer la liste.</p></div><div class="${K.card}"><div class="mb-3 text-sm font-bold text-slate-900">Pharmacies par région</div><div id="pf-reg"></div></div></div><p class="mb-3 text-xs text-slate-500">Le bouton « Lecteur » ouvre l'écran publicitaire d'une pharmacie (<code>player.html?pharmacy=ID&token=JETON</code>) : c'est cette page que le logiciel de pharmacie intègre pour afficher les campagnes et enregistrer affichages et clics.</p><div id="pf-t"></div>`, after: pfDraw };
 };
 function pfSet() { PF.q = $('#pf-q').value; PF.r = $('#pf-r').value; PF.w = $('#pf-w').value; PF.s = $('#pf-s').value; pfDraw(); }
 function pfPick(i) { PF.w = GEO.WL[i]; PF.r = ''; $('#pf-w').value = PF.w; $('#pf-r').value = ''; pfDraw(); }
@@ -131,9 +135,9 @@ function pfCsv() { const l = pfList(); OFF.csv([['ID', 'Nom', 'Code wilaya', 'Wi
 function pfDraw() {
   const list = pfList(), m = $('#pf-map');
   if (m) { m.innerHTML = GEO.dzMap({ click: 'pfPick', vals: OFF.pharmByWilaya(list), unit: 'pharmacies', one: PF.w, max: 320 }); const rc = {}; list.forEach(p => rc[p.region] = (rc[p.region] || 0) + 1); OFF.hbars($('#pf-reg'), GEO.REGS.map(r => ({ label: r, value: rc[r] || 0, color: GEO.RCOL[r] }))); }
-  $('#pf-t').innerHTML = tbl(['ID', 'Nom', 'Wilaya', 'Région', 'Logiciel / réseau', 'Statut', ''], list.slice(0, 200).map(p => `<tr><td class="${K.td} text-xs text-slate-500">${p.id}</td><td class="${K.td} font-semibold">${esc(p.name)}</td><td class="${K.td}">${esc(p.wilaya)}</td><td class="${K.td}">${p.region}</td><td class="${K.td}">${esc(net(p.network))}</td><td class="${K.td}">${p.active ? OFF.badge('active') : '<span class="rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-700">Inactive</span>'}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${b(K.mini, `togglePharm('${p.id}')`, p.active ? 'Désactiver' : 'Activer')}<a class="${K.mini}" target="_blank" rel="noopener" href="player.html?pharmacy=${p.id}">${ic('play', 'h-3.5 w-3.5')} Lecteur</a>${b(K.danger, `delPharm('${p.id}')`, '', 'trash')}</div></td></tr>`).join('') , 'Aucune pharmacie.') + (list.length > 200 ? `<p class="mt-2 text-xs text-slate-400">${list.length - 200} autres résultats : affinez la recherche.</p>` : '');
+  $('#pf-t').innerHTML = tbl(['ID', 'Nom', 'Wilaya', 'Région', 'Logiciel / réseau', 'Statut', ''], list.slice(0, 200).map(p => `<tr><td class="${K.td} text-xs text-slate-500">${p.id}</td><td class="${K.td} font-semibold">${esc(p.name)}</td><td class="${K.td}">${esc(p.wilaya)}</td><td class="${K.td}">${p.region}</td><td class="${K.td}">${esc(net(p.network))}</td><td class="${K.td}">${p.active ? OFF.badge('active') : '<span class="rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-700">Inactive</span>'}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${b(K.mini, `togglePharm('${p.id}')`, p.active ? 'Désactiver' : 'Activer')}<a class="${K.mini}" target="_blank" rel="noopener" href="player.html?pharmacy=${p.id}&token=${p.token}">${ic('play', 'h-3.5 w-3.5')} Lecteur</a>${b(K.danger, `delPharm('${p.id}')`, '', 'trash')}</div></td></tr>`).join('') , 'Aucune pharmacie.') + (list.length > 200 ? `<p class="mt-2 text-xs text-slate-400">${list.length - 200} autres résultats : affinez la recherche.</p>` : '');
 }
-function togglePharm(id) { OFF.mutate(d => { const p = d.pharmacies.find(x => x.id === id); p.active = !p.active; OFF.log(OFF.me().id, (p.active ? 'Pharmacie activée : ' : 'Pharmacie désactivée : ') + id); }); pfDraw(); }
+async function togglePharm(id) { const p=D().pharmacies.find(x=>x.id===id); if(!p)return; try { await OFF.setPharmacyActive(id,!p.active); pfDraw(); } catch(e) { OFF.fail(e); } }
 async function delPharm(id) { if (!await OFF.ask('Supprimer la pharmacie', 'Elle ne fera plus partie du réseau de diffusion.', 'Supprimer', true)) return; OFF.mutate(d => { d.pharmacies = d.pharmacies.filter(p => p.id !== id); OFF.log(OFF.me().id, 'Pharmacie supprimée : ' + id); }); OFF.toast('Pharmacie supprimée.'); pfDraw(); }
 function addPharm() {
   OFF.dialog('Ajouter une pharmacie', `<div class="space-y-3"><input id="np-n" placeholder="Nom de la pharmacie" class="${K.input}"><select id="np-w" class="${K.input}">${GEO.wopts('')}</select><select id="np-s" class="${K.input}">${D().settings.networks.map(n => `<option value="${n.id}">${esc(n.name)}</option>`).join('')}</select></div>`,
@@ -190,18 +194,18 @@ function pcalc() {
   const r = (l, v, bold) => `<div class="flex justify-between"><span class="text-slate-500">${l}</span><span class="${bold ? 'font-extrabold text-[#009668]' : 'font-semibold'}">${v}</span></div>`;
   o.innerHTML = r('Impressions estimées', fmt(p.imp)) + r('CPM ajusté', da(p.cpm)) + r('Budget publicitaire', da(p.budget)) + r('Frais fixe', da(p.fee)) + r('Total', da(p.total), 1);
 }
-function savePricing() { const s = readPricing(), e = checkPricing(s); if (e) return OFF.toast(e, 'err'); OFF.saveSettings(s, OFF.me().id); OFF.toast('Tarification enregistrée. Elle s\'applique aux nouvelles campagnes.'); OFF.render(); }
-async function resetPricing() { if (!await OFF.ask('Valeurs par défaut', 'Rétablir tous les paramètres de tarification du rapport (CPM 500 DA, frais fixe 2 000 DA, coefficients) ?', 'Rétablir')) return; OFF.resetSettings(OFF.me().id); OFF.toast('Valeurs par défaut rétablies.'); OFF.render(); }
+async function savePricing() { const s = readPricing(), e = checkPricing(s); if (e) return OFF.toast(e, 'err'); try { await OFF.saveSettings(s, OFF.me().id); OFF.toast('Tarification enregistrée. Elle s\'applique aux nouvelles campagnes.'); OFF.render(); } catch(err) { OFF.fail(err); } }
+async function resetPricing() { if (!await OFF.ask('Valeurs par défaut', 'Rétablir tous les paramètres de tarification du rapport (CPM 500 DA, frais fixe 2 000 DA, coefficients) ?', 'Rétablir')) return; await OFF.resetSettings(OFF.me().id); OFF.toast('Valeurs par défaut rétablies.'); OFF.render(); }
 
 /* ---------- Transactions ---------- */
 const TX = { recharge: 'Recharge', fee: 'Frais fixe', reserve: 'Budget réservé', release: 'Budget libéré', refund: 'Remboursement' };
 V.transactions = () => {
   const tx = D().transactions, pend = tx.filter(t => t.status === 'pending');
   return head('Transactions', 'Demandes de recharge et historique des mouvements.') +
-    `<div class="mb-2 font-bold text-slate-900">Recharges en attente</div>` + tbl(['Date', 'Annonceur', 'Détail', 'Montant', ''], pend.map(t => `<tr><td class="${K.td}">${OFF.dtt(t.date)}</td><td class="${K.td} font-semibold">${esc(uname(t.userId))}</td><td class="${K.td}">${esc(t.label)}</td><td class="${K.td} font-semibold">${da(t.amount)}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${b(K.ok, `rc('${t.id}',true)`, 'Confirmer le paiement', 'check')}${b(K.danger, `rc('${t.id}',false)`, 'Refuser', 'x')}</div></td></tr>`).join(''), 'Aucune demande en attente.') +
+    `<div class="mb-2 font-bold text-slate-900">Recharges en attente</div>` + tbl(['Date', 'Annonceur', 'Détail', 'Montant', ''], pend.map(t => `<tr><td class="${K.td}">${OFF.dtt(t.date)}</td><td class="${K.td} font-semibold">${esc(uname(t.userId))}</td><td class="${K.td}">${esc(t.label)}${t.ref ? `<div class="mt-1 text-xs text-slate-500">Réf. : ${esc(t.ref)}</div>` : ''}${t.proofUrl ? `<a class="mt-1 inline-block text-xs font-semibold text-emerald-700 underline" href="${esc(t.proofUrl)}" target="_blank" rel="noopener">Voir le justificatif</a>` : `<div class="mt-1 text-xs text-amber-600">Aucun justificatif joint</div>`}</td><td class="${K.td} font-semibold">${da(t.amount)}</td><td class="${K.td}"><div class="flex justify-end gap-1.5">${b(K.ok, `rc('${t.id}',true)`, 'Confirmer le paiement', 'check')}${b(K.danger, `rc('${t.id}',false)`, 'Refuser', 'x')}</div></td></tr>`).join(''), 'Aucune demande en attente.') +
     `<div class="mb-2 mt-8 font-bold text-slate-900">Historique</div>` + tbl(['Date', 'Annonceur', 'Type', 'Détail', 'Montant', 'Statut'], tx.slice(0, 300).map(t => `<tr><td class="${K.td} whitespace-nowrap">${OFF.dtt(t.date)}</td><td class="${K.td}">${esc(uname(t.userId))}</td><td class="${K.td}">${TX[t.type] || t.type}</td><td class="${K.td}">${esc(t.label)}</td><td class="${K.td} font-semibold ${t.amount < 0 ? '' : 'text-[#009668]'}">${t.amount > 0 ? '+' : ''}${da(t.amount)}</td><td class="${K.td}">${t.status === 'pending' ? OFF.badge('pending') : t.status === 'rejected' ? OFF.badge('rejected') : OFF.badge('ok')}</td></tr>`).join(''), 'Aucune transaction.');
 };
-function rc(id, ok) { try { OFF.resolveRecharge(id, ok, OFF.me().id); OFF.toast(ok ? 'Recharge confirmée : portefeuille crédité.' : 'Recharge refusée.'); OFF.render(); } catch (e) { OFF.fail(e); } }
+async function rc(id, ok) { try { await OFF.resolveRecharge(id, ok, OFF.me().id); OFF.toast(ok ? 'Recharge confirmée : portefeuille crédité.' : 'Recharge refusée.'); OFF.render(); } catch (e) { OFF.fail(e); } }
 
 /* ---------- Messages & journal ---------- */
 V.messages = () => head('Messages', 'Demandes reçues depuis le formulaire de contact du site.') +

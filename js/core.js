@@ -3,6 +3,10 @@
 (function (w) {
 'use strict';
 const KEY = 'offiads_db_v1', SES = 'offiads_session_v1';
+const SUPABASE_URL = 'https://hxmrvodbirqlihsjblgr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_GudmaonttbHsxS332AGb-Q_tFSC04iN';
+const sb = w.supabase && w.supabase.createClient ? w.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+let remoteMode = !!sb, remoteSession = null;
 
 /* ---------- Géographie : 69 wilayas, 5 régions (js/geo.js) ---------- */
 const G = w.GEO;
@@ -41,7 +45,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 let db = null;
 function load() { try { db = JSON.parse(localStorage.getItem(KEY)); } catch (e) { db = null; } return db; }
 function save() { localStorage.setItem(KEY, JSON.stringify(db)); }
-function D() { return load() || db; }
+function D() { return remoteMode ? db : (load() || db); }
 function mutate(fn) { load(); const d = db, r = fn(d); db = d; save(); return r; } // db = d : les lectures D() imbriquées ne doivent pas écraser l'objet modifié
 
 async function hash(pw, salt) {
@@ -67,27 +71,56 @@ function seedPharmacies() {
   return out;
 }
 
-async function init() {
-  if (load() && db.version === 2) return db;
-  if (db && db.version === 1) { // migration : 69 wilayas / 5 régions, comptes et campagnes conservés
-    db.version = 2; db.pharmacies = seedPharmacies();
-    db.settings.zone.regions = Object.assign({}, DEFAULTS.zone.regions, { 'Sud-Est': db.settings.zone.regions.Sud || 1.3, 'Sud-Ouest': db.settings.zone.regions.Sud || 1.3 });
-    delete db.settings.zone.regions.Sud;
-    db.campaigns.forEach(c => { if (c.region === 'Sud') c.region = 'Sud-Est'; });
-    save(); return db;
+function mapCampaign(c) {
+  return { id:c.id, userId:c.user_id, name:c.name, format:c.format, zoneMode:c.zone_mode, region:c.region||'', wilaya:c.wilaya||'', network:c.network_id||'all', pharmacies:Number(c.pharmacies), days:Number(c.days), freq:Number(c.freq), headline:c.headline||'', cta:c.cta||'Découvrir', url:c.url||'', mediaUrl:c.media_url||'', mediaType:c.media_type||'', mediaName:c.media_name||'', thumb:c.thumb_url||'', cpm:Number(c.cpm||0), imp:Number(c.imp_target||0), budget:Number(c.budget||0), fee:Number(c.fee||0), total:Number(c.total||0), spent:Number(c.spent||0), impressions:Number(c.impressions||0), clicks:Number(c.clicks||0), status:c.status, reason:c.reason||'', endReason:c.end_reason||'', invoiceNo:c.invoice_no, created:c.created_at ? new Date(c.created_at).getTime() : Date.now(), startAt:c.start_at ? new Date(c.start_at).getTime() : null, endAt:c.end_at ? new Date(c.end_at).getTime() : null, pausedAt:c.paused_at ? new Date(c.paused_at).getTime() : null, daily:{}, byWilaya:{} };
+}
+function mapProfile(p) { return { id:p.id, email:p.email, role:p.role, name:p.name, company:p.company, phone:p.phone||'', status:p.status, created:p.created_at ? new Date(p.created_at).getTime() : Date.now(), wallet:{available:Number(p.available||0),reserved:Number(p.reserved||0),spent:Number(p.spent||0)} }; }
+function mapTx(t) { return {id:t.id,userId:t.user_id,type:t.type,amount:Number(t.amount||0),label:t.label,status:t.status,date:t.created_at?new Date(t.created_at).getTime():Date.now(),method:t.method,ref:t.ref,proofUrl:t.proof_url||'',campaignId:t.campaign_id}; }
+async function loadRemoteData() {
+  if (!sb) throw new Error('Supabase JS ne se charge pas. Vérifiez votre connexion Internet.');
+  const {data:{session}} = await sb.auth.getSession(); remoteSession=session;
+  db = {version:2, settings:JSON.parse(JSON.stringify(DEFAULTS)), pharmacies:seedPharmacies(), users:[], campaigns:[], transactions:[], logs:[], messages:[], seq:{invoice:0}};
+  const [st, nw, rg, wl] = await Promise.all([
+    sb.from('settings').select('*').limit(1).maybeSingle(), sb.from('networks').select('*').eq('active',true), sb.from('regions').select('*'), sb.from('wilayas').select('*')
+  ]);
+  for (const r of [st,nw,rg,wl]) if (r.error) throw r.error;
+  if(st.data){const x=st.data;db.settings={cpm:Number(x.cpm),fee:Number(x.fee),zone:{national:Number(x.zone_national),wilaya:Number(x.zone_wilaya),regions:Object.fromEntries((rg.data||[]).map(a=>[a.name,Number(a.coef)]))},format:{image:Number(x.format_image),video:Number(x.format_video)},networks:(nw.data||[]).map(n=>({id:n.id,name:n.name,coef:Number(n.coef)})),maxFreq:Number(x.max_freq),minBudget:Number(x.min_budget),minPharm:Number(x.min_pharm),maxPharm:Number(x.max_pharm),payInfo:x.pay_info||''};}
+  if (remoteSession) {
+    const meRes=await sb.from('profiles').select('*').eq('id',remoteSession.user.id).maybeSingle();
+    if(meRes.error) throw meRes.error;
+    if(meRes.data) db.users.push(mapProfile(meRes.data));
+    const [cs,tx,allProfiles] = await Promise.all([
+      sb.from('campaigns').select('*').order('created_at',{ascending:false}),
+      sb.from('transactions').select('*').order('created_at',{ascending:false}),
+      meRes.data?.role==='admin' ? sb.from('profiles').select('*').order('created_at',{ascending:false}) : Promise.resolve({data:[],error:null})
+    ]);
+    for(const r of [cs,tx,allProfiles]) if(r.error) throw r.error;
+    db.campaigns=(cs.data||[]).map(mapCampaign); db.transactions=(tx.data||[]).map(mapTx);
+    // Charger les tables d'agrégats utilisées par les graphiques. Les KPI viennent de campaigns,
+    // mais les courbes/cartes utilisent campaign_daily et campaign_wilaya.
+    const [dailyRes, wilayaRes] = await Promise.all([
+      sb.from('campaign_daily').select('campaign_id,day,impressions,clicks'),
+      sb.from('campaign_wilaya').select('campaign_id,wilaya,impressions')
+    ]);
+    if(dailyRes.error) console.warn('OFFIADS campaign_daily:', dailyRes.error.message);
+    if(wilayaRes.error) console.warn('OFFIADS campaign_wilaya:', wilayaRes.error.message);
+    const byId = new Map(db.campaigns.map(c => [c.id, c]));
+    (dailyRes.data||[]).forEach(r => { const c=byId.get(r.campaign_id); if(!c)return; const day=String(r.day).slice(0,10); c.daily[day]={i:Number(r.impressions||0),c:Number(r.clicks||0)}; });
+    (wilayaRes.data||[]).forEach(r => { const c=byId.get(r.campaign_id); if(!c)return; c.byWilaya[r.wilaya]=Number(r.impressions||0); });
+    db.users=(allProfiles.data||[]).map(mapProfile); if(!db.users.some(u=>u.id===meRes.data?.id)&&meRes.data)db.users.unshift(mapProfile(meRes.data));
+    if(meRes.data?.role==='admin') {
+      const ph=await sb.from('pharmacies').select('id,name,wilaya_code,network_id,active,token,wilayas(name,region)');
+      if(ph.error) throw ph.error;
+      db.pharmacies=(ph.data||[]).map(x=>({id:x.id,name:x.name,wilaya:x.wilayas?.name||'',region:x.wilayas?.region||'',network:x.network_id,active:x.active,token:x.token}));
+      const logs=await sb.from('activity_logs').select('*').order('created_at',{ascending:false}).limit(400); if(!logs.error)db.logs=(logs.data||[]).map(x=>({id:x.id,userId:x.user_id,action:x.action,date:new Date(x.created_at).getTime()}));
+      const msgs=await sb.from('messages').select('*').order('created_at',{ascending:false}); if(!msgs.error)db.messages=(msgs.data||[]).map(x=>({id:x.id,name:x.name,email:x.email,msg:x.message,date:new Date(x.created_at).getTime(),read:x.read}));
+    }
   }
-  db = {
-    version: 2, settings: JSON.parse(JSON.stringify(DEFAULTS)), pharmacies: seedPharmacies(),
-    users: [], campaigns: [], transactions: [], logs: [], messages: [], seq: { invoice: 0 }
-  };
-  const mk = async (id, email, pw, role, name, company, bal) => db.users.push({
-    id, email, salt: id, hash: await hash(pw, id), role, name, company, phone: '', status: 'active', created: Date.now(),
-    wallet: { available: bal, reserved: 0, spent: 0 }
-  });
-  await mk('U-ADMIN', 'admin@offiads.dz', 'Admin@2026', 'admin', 'Administrateur OFFIADS', 'OFFIADS', 0);
-  await mk('U-DEMO', 'demo@offiads.dz', 'Demo@2026', 'advertiser', 'Annonceur Démo', 'Laboratoire Démo', 120000);
-  db.transactions.push({ id: uid('T'), userId: 'U-DEMO', type: 'recharge', amount: 120000, label: 'Crédit initial (compte démo)', status: 'ok', date: Date.now() });
-  save();
+  return db;
+}
+async function init() {
+  if (!sb) { throw new Error('Impossible de charger Supabase. Vérifiez Internet puis rechargez la page.'); }
+  await loadRemoteData();
   return db;
 }
 
@@ -99,55 +132,49 @@ function log(userId, action) {
   if (db.logs.length > 400) db.logs.length = 400;
 }
 async function register(o) {
-  const email = (o.email || '').trim().toLowerCase();
-  if (!(o.name || '').trim() || !(o.company || '').trim()) throw new Error('Nom et entreprise obligatoires.');
-  if (!validEmail(email)) throw new Error('Adresse e-mail invalide.');
-  if (!validPw(o.password)) throw new Error('Mot de passe : 8 caractères minimum, avec lettres et chiffres.');
-  load();
-  if (db.users.some(u => u.email === email)) throw new Error('Un compte existe déjà avec cet e-mail.');
-  const id = uid('U');
-  const u = { id, email, salt: id, hash: await hash(o.password, id), role: 'advertiser', name: o.name.trim(), company: o.company.trim(), phone: (o.phone || '').trim(), status: 'active', created: Date.now(), wallet: { available: 0, reserved: 0, spent: 0 } };
-  db.users.push(u); log(id, 'Création du compte annonceur'); save();
-  localStorage.setItem(SES, JSON.stringify({ id }));
-  return u;
+  const email=(o.email||'').trim().toLowerCase();
+  if(!(o.name||'').trim()||!(o.company||'').trim())throw new Error('Nom et entreprise obligatoires.');
+  if(!validEmail(email))throw new Error('Adresse e-mail invalide.');
+  if(!validPw(o.password))throw new Error('Mot de passe : 8 caractères minimum, avec lettres et chiffres.');
+  if(!sb)throw new Error('Connexion Supabase indisponible.');
+  const {data,error}=await sb.auth.signUp({email,password:o.password,options:{data:{name:o.name.trim(),company:o.company.trim(),phone:(o.phone||'').trim()}}});
+  if(error)throw error;
+  if(!data.session)throw new Error('Compte créé. Vérifiez votre e-mail pour confirmer le compte, puis connectez-vous.');
+  await loadRemoteData(); const u=me(); if(!u)throw new Error('Compte créé mais profil pas encore disponible. Réessayez dans quelques secondes.'); return u;
 }
-async function login(email, pw) {
-  email = (email || '').trim().toLowerCase(); load();
-  const u = db.users.find(x => x.email === email);
-  if (!u || u.hash !== await hash(pw || '', u.salt)) throw new Error('E-mail ou mot de passe incorrect.');
-  if (u.status === 'suspended') throw new Error('Ce compte est suspendu. Contactez OFFIADS.');
-  localStorage.setItem(SES, JSON.stringify({ id: u.id })); log(u.id, 'Connexion'); save();
+async function login(email,pw) {
+  if(!sb)throw new Error('Connexion Supabase indisponible.');
+  const {data,error}=await sb.auth.signInWithPassword({email:(email||'').trim().toLowerCase(),password:pw||''});
+  if(error)throw new Error('E-mail ou mot de passe incorrect.');
+  remoteSession=data.session; await loadRemoteData();
+  const u=me(); if(!u)throw new Error('Profil introuvable. Vérifiez la table profiles dans Supabase.');
+  if(u.status==='pending'){await sb.auth.signOut();throw new Error('Votre compte annonceur est en attente de validation par OFFIADS.');}
+  if(u.status==='rejected'){await sb.auth.signOut();throw new Error('Votre demande de création de compte a été refusée. Contactez OFFIADS.');}
+  if(u.status==='suspended'){await sb.auth.signOut();throw new Error('Ce compte est suspendu. Contactez OFFIADS.');}
   return u;
 }
 function me() {
-  let s; try { s = JSON.parse(localStorage.getItem(SES)); } catch (e) { s = null; }
-  if (!s) return null;
-  const u = D().users.find(x => x.id === s.id);
-  return u && u.status !== 'suspended' ? u : null;
+  if(remoteMode && remoteSession) return (db?.users||[]).find(u=>u.id===remoteSession.user.id)||null;
+  return null;
 }
-function logout() { localStorage.removeItem(SES); location.href = 'login.html'; }
+function logout() { if(sb) sb.auth.signOut().finally(()=>{remoteSession=null;location.href='login.html';}); else location.href='login.html'; }
 function guard(role) {
-  const u = me();
-  if (!u) { location.replace('login.html?next=' + encodeURIComponent(location.pathname.split('/').pop() + location.hash)); return null; }
-  if (u.role !== role) { location.replace(u.role === 'admin' ? 'admin.html' : 'app.html'); return null; }
-  return u;
+  const u=me();
+  if(!u){location.replace('login.html?next='+encodeURIComponent(location.pathname.split('/').pop()+location.hash));return null;}
+  if(u.role!==role){location.replace(u.role==='admin'?'admin.html':'app.html');return null;} return u;
 }
 async function changePassword(userId, oldPw, newPw) {
-  load(); const u = db.users.find(x => x.id === userId);
-  if (!u || u.hash !== await hash(oldPw || '', u.salt)) throw new Error('Mot de passe actuel incorrect.');
-  if (!validPw(newPw)) throw new Error('Nouveau mot de passe : 8 caractères minimum, avec lettres et chiffres.');
-  u.hash = await hash(newPw, u.salt); log(userId, 'Changement de mot de passe'); save();
+  if(!validPw(newPw))throw new Error('Nouveau mot de passe : 8 caractères minimum, avec lettres et chiffres.');
+  const u=me(); if(!u||u.id!==userId)throw new Error('Session invalide.');
+  const {error}=await sb.auth.updateUser({password:newPw}); if(error)throw error;
+  log(userId,'Changement de mot de passe');
 }
-async function resetPassword(email, newPw) { // mode local uniquement (pas d'e-mail envoyé)
-  email = (email || '').trim().toLowerCase(); load();
-  const u = db.users.find(x => x.email === email);
-  if (!u) throw new Error('Aucun compte avec cet e-mail.');
-  if (u.role === 'admin') throw new Error("Le mot de passe administrateur ne peut pas être réinitialisé ici.");
-  if (!validPw(newPw)) throw new Error('Nouveau mot de passe : 8 caractères minimum, avec lettres et chiffres.');
-  u.hash = await hash(newPw, u.salt); log(u.id, 'Réinitialisation du mot de passe'); save();
+async function resetPassword(email) {
+  if(!validEmail((email||'').trim()))throw new Error('Adresse e-mail invalide.');
+  const {error}=await sb.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:location.origin+location.pathname}); if(error)throw error;
 }
-function updateProfile(userId, o) {
-  return mutate(d => { const u = d.users.find(x => x.id === userId); u.name = o.name.trim(); u.company = o.company.trim(); u.phone = (o.phone || '').trim(); log(userId, 'Profil modifié'); return u; });
+async function updateProfile(userId, o) {
+  const {data,error}=await sb.from('profiles').update({name:o.name.trim(),company:o.company.trim(),phone:(o.phone||'').trim()}).eq('id',userId).select('*').single(); if(error)throw error; const u=mapProfile(data); const i=db.users.findIndex(x=>x.id===userId); if(i>=0)db.users[i]=u; else db.users.push(u); return u;
 }
 
 /* ---------- Tarification (rapport de tarification) ---------- */
@@ -173,119 +200,52 @@ function addTx(d, userId, type, amount, label, status, extra) {
   const t = Object.assign({ id: uid('T'), userId, type, amount, label, status: status || 'ok', date: Date.now() }, extra || {});
   d.transactions.unshift(t); return t;
 }
-function requestRecharge(userId, amount, method, ref) {
-  amount = Math.round(Number(amount));
-  if (!(amount >= 1000)) throw new Error('Montant minimum : 1 000 DA.');
-  return mutate(d => { log(userId, 'Demande de recharge ' + da(amount)); return addTx(d, userId, 'recharge', amount, 'Recharge par ' + method + (ref ? ' — réf. ' + ref : ''), 'pending', { method, ref }); });
+async function requestRecharge(userId, amount, method, ref, proofUrl) {
+  amount=Math.round(Number(amount)); if(!(amount>=1000))throw new Error('Montant minimum : 1 000 DA.');
+  if(!proofUrl) throw new Error('Le justificatif de paiement est obligatoire.');
+  const {error}=await sb.rpc('request_recharge',{p_amount:amount,p_method:method||'virement',p_ref:ref||null,p_proof_url:proofUrl}); if(error)throw error; await loadRemoteData();
 }
-function resolveRecharge(txId, ok, adminId) {
-  return mutate(d => {
-    const t = d.transactions.find(x => x.id === txId && x.status === 'pending');
-    if (!t) throw new Error('Demande introuvable ou déjà traitée.');
-    t.status = ok ? 'ok' : 'rejected'; t.date = Date.now();
-    if (ok) d.users.find(u => u.id === t.userId).wallet.available += t.amount;
-    log(adminId, (ok ? 'Recharge confirmée ' : 'Recharge refusée ') + da(t.amount)); return t;
-  });
+async function resolveRecharge(txId, ok, adminId) {
+  const {error}=await sb.rpc('resolve_recharge',{p_tx:Number(txId),p_ok:!!ok}); if(error)throw error; await loadRemoteData();
 }
-function manualCredit(userId, amount, adminId) {
-  amount = Math.round(Number(amount));
-  if (!(amount > 0)) throw new Error('Montant invalide.');
-  return mutate(d => { d.users.find(u => u.id === userId).wallet.available += amount; addTx(d, userId, 'recharge', amount, 'Crédit manuel par OFFIADS'); log(adminId, 'Crédit manuel ' + da(amount)); });
+async function manualCredit(userId, amount, adminId) {
+  amount=Math.round(Number(amount)); if(!(amount>0))throw new Error('Montant invalide.');
+  const {error}=await sb.rpc('manual_credit',{p_user:userId,p_amount:amount}); if(error)throw error; await loadRemoteData();
 }
-function createCampaign(userId, o, id) {
-  return mutate(d => {
-    const s = d.settings, u = d.users.find(x => x.id === userId);
-    if (!u || u.status !== 'active') throw new Error('Compte inactif.');
-    if (!(o.name || '').trim()) throw new Error('Donnez un nom à la campagne.');
-    if (o.zoneMode === 'wilaya' && !WILAYAS[o.wilaya]) throw new Error('Wilaya invalide.');
-    if (o.zoneMode === 'region' && !REGIONS[o.region]) throw new Error('Région invalide.');
-    const avail = eligible(o).length;
-    if (avail < s.minPharm) throw new Error('Pas assez de pharmacies actives dans cette zone (minimum ' + s.minPharm + ').');
-    if (!(o.pharmacies >= s.minPharm && o.pharmacies <= Math.min(s.maxPharm, avail))) throw new Error('Nombre de pharmacies hors limites (' + s.minPharm + ' à ' + Math.min(s.maxPharm, avail) + ').');
-    if (!(o.freq >= 1 && o.freq <= s.maxFreq)) throw new Error('Fréquence maximale : ' + s.maxFreq + ' / jour.');
-    if (!DURATIONS.includes(o.days)) throw new Error('Durée invalide.');
-    const p = price(o, s);
-    if (p.budget < s.minBudget) throw new Error('Budget publicitaire minimum : ' + da(s.minBudget) + ' (actuel : ' + da(p.budget) + ').');
-    if (u.wallet.available < p.total) throw new Error('Solde insuffisant : ' + da(p.total) + ' requis, ' + da(u.wallet.available) + ' disponibles.');
-    u.wallet.available -= p.total; u.wallet.reserved += p.budget;
-    d.seq.invoice++;
-    const c = Object.assign({}, o, {
-      id: id || uid('C'), userId, cpm: p.cpm, imp: p.imp, budget: p.budget, fee: p.fee, total: p.total,
-      status: 'pending', created: Date.now(), spent: 0, impressions: 0, clicks: 0, daily: {}, byWilaya: {},
-      invoiceNo: 'OFF-' + new Date().getFullYear() + '-' + String(d.seq.invoice).padStart(4, '0')
-    });
-    d.campaigns.unshift(c);
-    addTx(d, userId, 'fee', -p.fee, 'Frais fixe — ' + c.name, 'ok', { ref: c.id });
-    addTx(d, userId, 'reserve', -p.budget, 'Budget réservé — ' + c.name, 'ok', { ref: c.id });
-    log(userId, 'Campagne créée : ' + c.name); return c;
-  });
+async function setUserStatus(userId, status) {
+  const {error}=await sb.rpc('set_user_status',{p_user:userId,p_status:status}); if(error)throw error; await loadRemoteData();
 }
-function endC(d, c, why, st) { // clôture + libération du budget non consommé
-  const u = d.users.find(x => x.id === c.userId), rest = Math.max(0, c.budget - c.spent);
-  u.wallet.reserved = Math.max(0, u.wallet.reserved - rest); u.wallet.available += rest;
-  if (rest >= 1) addTx(d, c.userId, 'release', Math.round(rest), 'Budget non consommé libéré — ' + c.name, 'ok', { ref: c.id });
-  c.status = st || 'ended'; c.endedAt = Date.now(); c.endReason = why;
+async function setPharmacyActive(id, active) { const {error}=await sb.from('pharmacies').update({active:!!active}).eq('id',id); if(error)throw error; await loadRemoteData(); }
+async function createCampaign(userId, o, id) {
+  const payload={id:id||uid('C'),name:o.name,format:o.format,zoneMode:o.zoneMode,wilaya:o.wilaya||'',region:o.region||'',network:o.network||'all',pharmacies:Number(o.pharmacies),days:Number(o.days),freq:Number(o.freq),headline:o.headline||'',cta:o.cta||'Découvrir',url:o.url||'',mediaUrl:o.mediaUrl||'',mediaType:o.mediaType||'',mediaName:o.mediaName||'',thumb:o.thumb||''};
+  const {data,error}=await sb.rpc('create_campaign',{p:payload}); if(error)throw error;
+  await loadRemoteData(); return mapCampaign(Array.isArray(data)?data[0]:data);
 }
-function campaignAction(kind, id, actorId, reason) {
-  return mutate(d => {
-    const c = d.campaigns.find(x => x.id === id);
-    if (!c) throw new Error('Campagne introuvable.');
-    const actor = d.users.find(x => x.id === actorId), isAdmin = actor && actor.role === 'admin';
-    if (!isAdmin && c.userId !== actorId) throw new Error('Action non autorisée.');
-    const st = c.status, u = d.users.find(x => x.id === c.userId), now = Date.now();
-    if (kind === 'approve' || kind === 'reject') {
-      if (!isAdmin) throw new Error('Réservé à OFFIADS.'); if (st !== 'pending') throw new Error('Campagne déjà traitée.');
-      if (kind === 'approve') { c.status = 'active'; c.startAt = now; c.endAt = now + c.days * 864e5; }
-      else {
-        if (!(reason || '').trim()) throw new Error('Indiquez le motif du rejet.');
-        u.wallet.reserved = Math.max(0, u.wallet.reserved - c.budget); u.wallet.available += c.total;
-        addTx(d, c.userId, 'refund', c.total, 'Remboursement (campagne rejetée) — ' + c.name, 'ok', { ref: c.id }); c.status = 'rejected'; c.reason = reason.trim();
-      }
-    } else if (kind === 'cancel') {
-      if (st !== 'pending') throw new Error('Seule une campagne en attente peut être annulée.');
-      u.wallet.reserved = Math.max(0, u.wallet.reserved - c.budget); u.wallet.available += c.total;
-      addTx(d, c.userId, 'refund', c.total, 'Remboursement (campagne annulée) — ' + c.name, 'ok', { ref: c.id }); c.status = 'cancelled';
-    } else if (kind === 'pause') {
-      if (st !== 'active') throw new Error('Campagne non active.'); c.status = 'paused'; c.pausedAt = now;
-    } else if (kind === 'resume') {
-      if (st !== 'paused') throw new Error('Campagne non en pause.'); c.endAt += now - c.pausedAt; c.status = 'active'; delete c.pausedAt;
-    } else if (kind === 'stop') {
-      if (st !== 'active' && st !== 'paused') throw new Error('Campagne non en cours.'); endC(d, c, isAdmin ? 'Arrêtée par OFFIADS' : 'Arrêtée par l\'annonceur');
-    } else throw new Error('Action inconnue.');
-    log(actorId, kind + ' : ' + c.name); return c;
-  });
+async function campaignAction(kind, id, actorId, reason) {
+  const rpcKind=kind==='cancel'?'cancel':kind;
+  const {data,error}=await sb.rpc('campaign_action',{p_id:id,p_kind:rpcKind,p_reason:reason||null}); if(error)throw error;
+  await loadRemoteData(); return mapCampaign(Array.isArray(data)?data[0]:data);
 }
-function tick() { // clôture automatique (durée écoulée / budget épuisé)
+function tick() { // la clôture de production est gérée par la fonction PostgreSQL close_expired()
+  if (remoteMode) return;
   load(); let ch = false; const now = Date.now();
   db.campaigns.forEach(c => {
     if (c.status === 'active' && (now >= c.endAt || c.spent >= c.budget - 1e-9)) { endC(db, c, now >= c.endAt ? 'Durée écoulée' : 'Budget épuisé'); ch = true; }
   });
   if (ch) save();
 }
-function record(cid, pid, kind) { // appelé par le lecteur (player.html)
-  load();
-  const c = db.campaigns.find(x => x.id === cid), p = db.pharmacies.find(x => x.id === pid);
-  if (!c || !p || c.status !== 'active') return false;
-  if (Date.now() >= c.endAt) { endC(db, c, 'Durée écoulée'); save(); return false; }
-  const day = today(), dd = c.daily[day] || (c.daily[day] = { i: 0, c: 0 });
-  if (kind === 'click') { c.clicks++; dd.c++; }
-  else {
-    const cost = c.cpm / 1000;
-    if (c.spent + cost > c.budget + 1e-9) { endC(db, c, 'Budget épuisé'); save(); return false; }
-    c.impressions++; dd.i++; c.spent += cost; c.byWilaya[p.wilaya] = (c.byWilaya[p.wilaya] || 0) + 1;
-    const u = db.users.find(x => x.id === c.userId); u.wallet.reserved = Math.max(0, u.wallet.reserved - cost); u.wallet.spent += cost;
-    if (c.spent >= c.budget - 1e-9) endC(db, c, 'Budget épuisé');
-  }
-  save(); return true;
+async function record(cid, pid, kind, token) {
+  if(!sb)return false;
+  const {data,error}=await sb.rpc('record_event',{p_campaign:cid,p_pharmacy:pid,p_token:token||'',p_kind:kind==='click'?'click':'imp'});
+  if(error) { console.error(error); return false; }
+  if(data) await loadRemoteData(); return !!data;
 }
-function pickAd(pid) { // choix de la publicité à afficher pour une pharmacie
-  tick(); const d = D(), p = d.pharmacies.find(x => x.id === pid);
-  if (!p || !p.active) return null;
-  const list = d.campaigns.filter(c => c.status === 'active' && (c.network === 'all' || !c.network || c.network === p.network) &&
-    (c.zoneMode === 'national' || (c.zoneMode === 'region' && c.region === p.region) || (c.zoneMode === 'wilaya' && c.wilaya === p.wilaya)));
-  if (!list.length) return null;
-  list.sort((a, b) => (a.impressions / (a.imp || 1)) - (b.impressions / (b.imp || 1))); // le moins servi d'abord
-  return list[0];
+async function pickAd(pid, token) {
+  if(!sb)return null;
+  const {data,error}=await sb.rpc('pick_ad',{p_pharmacy:pid,p_token:token||''});
+  if(error){console.error(error);return null;}
+  const c=Array.isArray(data)?data[0]:data; if(!c)return null;
+  return {id:c.id,format:c.format,headline:c.headline,cta:c.cta,url:c.url,mediaUrl:c.media_url};
 }
 function simulate(n) { // outil de test admin : génère des affichages réalistes
   tick(); const d = D(); let imp = 0, clk = 0;
@@ -303,8 +263,8 @@ function simulate(n) { // outil de test admin : génère des affichages réalist
 
 /* ---------- Autres données ---------- */
 function addMessage(o) { return mutate(d => { d.messages.unshift({ id: uid('M'), name: o.name, email: o.email, msg: o.msg, date: Date.now(), read: false }); }); }
-function saveSettings(s, adminId) { return mutate(d => { d.settings = s; log(adminId, 'Tarification modifiée'); }); }
-function resetSettings(adminId) { return mutate(d => { const pi = d.settings.payInfo; d.settings = JSON.parse(JSON.stringify(DEFAULTS)); d.settings.payInfo = pi; log(adminId, 'Tarification réinitialisée'); }); }
+async function saveSettings(s, adminId) { const patch={cpm:s.cpm,fee:s.fee,zone_national:s.zone.national,zone_wilaya:s.zone.wilaya,format_image:s.format.image,format_video:s.format.video,max_freq:s.maxFreq,min_budget:s.minBudget,min_pharm:s.minPharm,max_pharm:s.maxPharm,pay_info:s.payInfo}; const {error}=await sb.from('settings').update(patch).eq('id',true); if(error)throw error; await loadRemoteData(); }
+async function resetSettings(adminId) { const pi=db.settings.payInfo; const s=JSON.parse(JSON.stringify(DEFAULTS)); s.payInfo=pi; await saveSettings(s,adminId); }
 function series(cs, n) {
   const labels = [], imp = [], clk = [];
   for (let i = n - 1; i >= 0; i--) {
@@ -490,7 +450,7 @@ function pwdDialog(userId) {
 
 w.OFF = {
   $, $$, esc, fmt, da, dt, dtt, uid, sum, K, ic, badge, toast, fail, dialog, ask, printHTML, csv, line, donut, hbars, shell, start, render, pwdDialog,
-  REGIONS, WILAYAS, WILAYA_LIST, GEO: G, byRegion, pharmByWilaya, DURATIONS, DEFAULTS, D, ready: init(), register, login, me, logout, guard, changePassword, resetPassword, updateProfile, validEmail, validPw,
-  eligible, price, requestRecharge, resolveRecharge, manualCredit, createCampaign, campaignAction, tick, record, pickAd, simulate, addMessage, saveSettings, resetSettings, series, byWilaya, media, mutate, log
+  REGIONS, WILAYAS, WILAYA_LIST, GEO: G, byRegion, pharmByWilaya, DURATIONS, DEFAULTS, D, ready: init(), register, login, me, logout, guard, changePassword, resetPassword, updateProfile, validEmail, validPw, refresh: loadRemoteData,
+  eligible, price, requestRecharge, resolveRecharge, manualCredit, setUserStatus, setPharmacyActive, createCampaign, campaignAction, tick, record, pickAd, simulate, addMessage, saveSettings, resetSettings, series, byWilaya, media, mutate, log
 };
 })(window);

@@ -10,6 +10,7 @@
 </head>
 <body><p style="padding:2rem;font-family:sans-serif">Chargement…</p>
 <script src="js/geo.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/core.js"></script>
 <script>
 const K = OFF.K, $ = OFF.$, da = OFF.da, fmt = OFF.fmt, esc = OFF.esc, ic = OFF.ic;
@@ -45,6 +46,15 @@ OFF.ready.then(() => {
     top: u => `<div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-1.5"><div class="text-[11px] leading-tight text-slate-500">Solde disponible<div class="text-sm font-bold text-slate-900">${da(u.wallet.available)}</div></div><button onclick="recharge()" class="${K.btn} !px-3 !py-1.5">Recharger</button></div>`
   });
   OFF.start(V, 'dashboard');
+  // Actualiser les KPI et graphiques automatiquement sans recharger la page.
+  let statsRefreshBusy = false;
+  setInterval(async () => {
+    if (statsRefreshBusy || document.visibilityState !== 'visible') return;
+    statsRefreshBusy = true;
+    try { await OFF.refresh(); OFF.render(); }
+    catch (e) { console.warn('Actualisation automatique des statistiques :', e.message); }
+    finally { statsRefreshBusy = false; }
+  }, 10000);
 });
 
 /* ---------- Actions communes ---------- */
@@ -52,18 +62,23 @@ async function act(kind, id) {
   const c = OFF.D().campaigns.find(x => x.id === id); if (!c) return;
   const M = { stop: ['Arrêter la campagne', 'Le budget non consommé sera libéré sur votre solde. Cette action est définitive.', 'Arrêter'], cancel: ['Annuler la campagne', 'Le montant total (' + da(c.total) + ') vous sera remboursé.', 'Annuler la campagne'] }[kind];
   if (M && !await OFF.ask(M[0], M[1], M[2], true)) return;
-  try { OFF.campaignAction(kind, id, OFF.me().id); OFF.toast({ pause: 'Campagne mise en pause.', resume: 'Campagne reprise.', stop: 'Campagne arrêtée, budget restant libéré.', cancel: 'Campagne annulée et remboursée.' }[kind]); OFF.render(); } catch (e) { OFF.fail(e); }
+  try { await OFF.campaignAction(kind, id, OFF.me().id); OFF.toast({ pause: 'Campagne mise en pause.', resume: 'Campagne reprise.', stop: 'Campagne arrêtée, budget restant libéré.', cancel: 'Campagne annulée et remboursée.' }[kind]); OFF.render(); } catch (e) { OFF.fail(e); }
 }
 function recharge() {
   const s = OFF.D().settings;
-  OFF.dialog('Recharger mon portefeuille', `<p class="mb-3 text-xs text-slate-500">Votre demande est créditée après confirmation du paiement par l'équipe OFFIADS.</p>
-    <div class="space-y-3"><div class="grid grid-cols-4 gap-2 text-xs">${[20000, 50000, 100000, 200000].map(a => `<button type="button" class="${K.mini} justify-center" onclick="$('#rc-amt').value=${a}">${fmt(a)}</button>`).join('')}</div>
-    <input id="rc-amt" type="number" min="1000" step="1000" placeholder="Montant en DA" class="${K.input}">
-    <select id="rc-m" class="${K.input}"><option>Virement bancaire</option><option>Versement CCP</option><option>Chèque</option></select>
-    <input id="rc-ref" placeholder="Référence du paiement (optionnel)" class="${K.input}">
-    <div class="whitespace-pre-line rounded-xl bg-slate-50 p-3 text-xs text-slate-600">${esc(s.payInfo)}</div></div>`,
-    [{ label: 'Annuler', cls: K.btn2 }, { label: 'Envoyer la demande', fn: () => {
-      try { OFF.requestRecharge(OFF.me().id, $('#rc-amt').value, $('#rc-m').value, $('#rc-ref').value.trim()); OFF.toast('Demande de recharge envoyée.'); OFF.render(); } catch (e) { OFF.fail(e); return false; } } }]);
+  OFF.dialog('Recharger mon portefeuille', `<div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><b>Important :</b> votre portefeuille sera crédité après vérification du versement par l'équipe OFFIADS.</div>
+    <div class="mb-3 rounded-xl border border-slate-200 bg-white p-4 text-center"><div class="text-xs font-bold uppercase tracking-wide text-slate-500">Coordonnées de paiement</div><div class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-800">${esc(s.payInfo || 'Les coordonnées de paiement seront communiquées par OFFIADS.')}</div></div>
+    <div class="space-y-3"><div class="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">${[20000, 50000, 100000, 200000].map(a => `<button type="button" class="${K.mini} justify-center" onclick="$('#rc-amt').value=${a}">${fmt(a)} DA</button>`).join('')}</div>
+    <label class="block text-xs font-semibold text-slate-600">Montant versé (DA)<input id="rc-amt" type="number" min="1000" step="1000" placeholder="Ex. 20000" class="${K.input} mt-1"></label>
+    <label class="block text-xs font-semibold text-slate-600">Mode de paiement<select id="rc-m" class="${K.input} mt-1"><option>Versement CCP / BaridiMob</option><option>Virement bancaire</option><option>Chèque</option></select></label>
+    <label class="block text-xs font-semibold text-slate-600">Référence du versement<input id="rc-ref" placeholder="N° de transaction ou référence" class="${K.input} mt-1"></label>
+    <label class="block text-xs font-semibold text-slate-600">Justificatif de paiement (PDF ou image)<input id="rc-proof" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" class="${K.input} mt-1" required><span class="mt-1 block font-normal text-slate-400">Joignez le reçu de versement. PDF, JPG ou PNG — 10 Mo maximum.</span></label></div>`,
+    [{ label: 'Annuler', cls: K.btn2 }, { label: 'Envoyer le justificatif', fn: async () => {
+      const amount = $('#rc-amt').value, file = $('#rc-proof').files[0];
+      if (!Number(amount) || Number(amount) < 1000) { OFF.toast('Le montant minimum est de 1 000 DA.'); return false; }
+      if (!file) { OFF.toast('Veuillez joindre le reçu de paiement.'); return false; }
+      if (file.size > 10 * 1024 * 1024) { OFF.toast('Le fichier dépasse 10 Mo.'); return false; }
+      try { const proofUrl = await uploadRechargeProof(file); await OFF.requestRecharge(OFF.me().id, amount, $('#rc-m').value, $('#rc-ref').value.trim(), proofUrl); OFF.toast('Demande de recharge envoyée avec justificatif.'); OFF.render(); } catch (e) { OFF.fail(e); return false; } } }]);
 }
 
 /* ---------- Tableau de bord ---------- */
@@ -181,6 +196,25 @@ async function uploadCampaignMedia(file) {
   }
   return result.secure_url;
 }
+async function uploadRechargeProof(file) {
+  // Cloudinary PDFs must be uploaded as `raw`; `auto` may route them to image/upload
+  // and fail with 401 / deny or ACL failure when the unsigned preset excludes PDFs.
+  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  const resource = isPdf ? 'raw' : 'image';
+  const endpoint = `https://api.cloudinary.com/v1_1/${OFFIADS_CLOUDINARY_CLOUD}/${resource}/upload`;
+  const body = new FormData();
+  body.append('file', file);
+  body.append('upload_preset', OFFIADS_CLOUDINARY_PRESET);
+  body.append('folder', 'offiads/payment-proofs');
+  const response = await fetch(endpoint, { method: 'POST', body });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.secure_url) {
+    const detail = result.error?.message || 'Erreur Cloudinary inconnue';
+    if (isPdf) throw new Error(`Cloudinary a refusé le PDF (${detail}). Dans Settings > Upload > upload preset « ${OFFIADS_CLOUDINARY_PRESET} », autorisez le format PDF et le type de ressource Raw pour les uploads unsigned.`);
+    throw new Error(`Échec de l’envoi du justificatif (${detail}). Vérifiez le preset unsigned Cloudinary.`);
+  }
+  return result.secure_url;
+}
 
 async function wSubmit() {
   const u = OFF.me(), p = OFF.price(W), err = m => OFF.toast(m, 'err');
@@ -196,7 +230,7 @@ async function wSubmit() {
   try {
     const mediaUrl = await uploadCampaignMedia(W.file);
     await OFF.media.put(id, W.file); const thumb = await OFF.media.thumb(W.file);
-    const c = OFF.createCampaign(u.id, { name: W.name, format: W.format, mediaUrl, zoneMode: W.zoneMode, wilaya: W.zoneMode === 'wilaya' ? W.wilaya : '', region: W.zoneMode === 'region' ? W.region : '', network: W.network, pharmacies: W.pharmacies, days: Number(W.days), freq: Number(W.freq), headline: W.headline, cta: W.cta, url: W.url, mediaType: W.file.type, mediaName: W.file.name, thumb }, id);
+    const c = await OFF.createCampaign(u.id, { name: W.name, format: W.format, mediaUrl, zoneMode: W.zoneMode, wilaya: W.zoneMode === 'wilaya' ? W.wilaya : '', region: W.zoneMode === 'region' ? W.region : '', network: W.network, pharmacies: W.pharmacies, days: Number(W.days), freq: Number(W.freq), headline: W.headline, cta: W.cta, url: W.url, mediaType: W.file.type, mediaName: W.file.name, thumb }, id);
     wClear(true); W = null; OFF.toast('Campagne envoyée pour validation (' + da(c.total) + ' débités/réservés).'); location.hash = '#/campaign/' + c.id;
   } catch (e) { OFF.media.del(id); OFF.fail(e); btn.disabled = false; }
 }
@@ -314,9 +348,9 @@ V.settings = (_, u) => head('Paramètres', 'Informations de votre compte annonce
   <div><label class="mb-1 block text-xs font-semibold text-slate-600">E-mail (non modifiable)</label><input value="${esc(u.email)}" disabled class="${K.input} bg-slate-50"></div>
   <button onclick="saveProfile()" class="${K.btn}">Enregistrer</button></div>
   <div class="${K.card} space-y-3"><div class="font-bold text-slate-900">Sécurité</div><p class="text-sm text-slate-500">Changez régulièrement votre mot de passe.</p><button onclick="OFF.pwdDialog(OFF.me().id)" class="${K.btn2}">${ic('key')} Changer le mot de passe</button></div></div>`;
-function saveProfile() {
+async function saveProfile() {
   const n = $('#p-name').value, c = $('#p-co').value; if (!n.trim() || !c.trim()) return OFF.toast('Nom et entreprise obligatoires.', 'err');
-  OFF.updateProfile(OFF.me().id, { name: n, company: c, phone: $('#p-ph').value }); OFF.toast('Profil enregistré.'); OFF.render();
+  try { await OFF.updateProfile(OFF.me().id, { name: n, company: c, phone: $('#p-ph').value }); OFF.toast('Profil enregistré.'); OFF.render(); } catch(e) { OFF.fail(e); }
 }
 </script>
 </body>

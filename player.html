@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,system-ui,sans-serif;background:#081726;color:#fff;overflow:hidden}
 #stage{position:relative;height:100%;width:100%}
-#media{position:absolute;inset:0}#media img,#media video{width:100%;height:100%;object-fit:cover}
+#media{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#081726}#media img,#media video{display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#081726}
 #shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,.05) 60%)}
 #txt{position:absolute;left:5%;right:5%;bottom:8%}
 #hl{font-size:clamp(20px,4.5vw,44px);font-weight:800;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.5)}
@@ -25,31 +25,33 @@
   <div id="idle"></div>
 </div>
 <script src="js/geo.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/core.js"></script>
 <script>
 /* Lecteur : à intégrer dans le logiciel de pharmacie (iframe / webview) :
-   <iframe src="https://VOTRE-DOMAINE/player.html?pharmacy=PH-0001" ...>  — &rotate=8 pour changer la durée (secondes) */
-const q = new URLSearchParams(location.search), PID = q.get('pharmacy'), ROT = Math.max(4, parseInt(q.get('rotate'), 10) || 8);
+   <iframe src="https://VOTRE-DOMAINE/player.html?pharmacy=PH-0001&token=JETON_PHARMACIE" ...>  — &rotate=8 pour changer la durée (secondes) */
+const q = new URLSearchParams(location.search), PID = q.get('pharmacy'), TOKEN = q.get('token'), ROT = Math.max(4, parseInt(q.get('rotate'), 10) || 8);
 const el = id => document.getElementById(id);
 let cur = null, url = '';
 function idle(msg) { cur = null; el('idle').style.display = 'flex'; el('idle').textContent = msg; }
+function showHouseAd() { cur = null; el('idle').style.display = 'none'; el('shade').style.display = 'none'; el('txt').style.display = 'none'; const m = el('media'); m.innerHTML = '<img src="assets/offiads-house-ad.png" alt="OFFIADS" style="object-fit:contain;background:#fff">'; m.style.background = '#fff'; }
 async function show(c) {
-  el('idle').style.display = 'none'; cur = c;
+  el('idle').style.display = 'none'; el('shade').style.display = ''; el('txt').style.display = ''; cur = c;
   el('hl').textContent = c.headline || ''; el('cta').textContent = c.cta || 'Découvrir'; el('cta').style.display = c.cta ? 'inline-block' : 'none';
   const blob = c.mediaUrl ? null : await OFF.media.get(c.id); if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
   const m = el('media'); m.innerHTML = '';
-  if (c.mediaUrl) { const safeUrl = String(c.mediaUrl); m.innerHTML = c.format === 'video' ? `<video src="${safeUrl}" autoplay muted loop playsinline></video>` : `<img src="${safeUrl}" alt="">`; }
+  if (c.mediaUrl) { const safeUrl = String(c.mediaUrl); m.innerHTML = c.format === 'video' ? `<video src="${safeUrl}" autoplay muted loop playsinline></video>` : `<img src="${safeUrl}" alt="" style="object-fit:contain">`; }
   else if (blob) { url = URL.createObjectURL(blob); m.innerHTML = c.format === 'video' ? `<video src="${url}" autoplay muted loop playsinline></video>` : `<img src="${url}" alt="">`; }
   else { m.style.background = 'linear-gradient(135deg,#0e2439,#009668)'; }
-  OFF.record(c.id, PID, 'imp'); // 1 affichage = 1 impression facturée
+  await OFF.record(c.id, PID, 'imp', TOKEN); // impression enregistrée côté base
 }
 async function cycle() {
-  if (!PID) return idle('Paramètre manquant : player.html?pharmacy=PH-0001');
-  const c = OFF.pickAd(PID);
-  if (!c) return idle('Aucune publicité à afficher pour cette pharmacie pour le moment.');
+  if (!PID || !TOKEN) return idle('Paramètres requis : player.html?pharmacy=PH-0001&token=JETON_PHARMACIE');
+  const c = await OFF.pickAd(PID, TOKEN);
+  if (!c) return showHouseAd();
   await show(c);
 }
-el('cta').onclick = () => { if (!cur) return; OFF.record(cur.id, PID, 'click'); if (cur.url) window.open(cur.url, '_blank', 'noopener'); };
+el('cta').onclick = () => { if (!cur) return; OFF.record(cur.id, PID, 'click', TOKEN); if (cur.url) window.open(cur.url, '_blank', 'noopener'); };
 OFF.ready.then(() => { cycle(); setInterval(cycle, ROT * 1000); });
 </script>
 </body>

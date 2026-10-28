@@ -13,6 +13,14 @@
   <section class="relative hidden overflow-hidden bg-gradient-to-br from-[#081726] via-[#0e2439] to-[#009668] p-12 text-white lg:flex lg:flex-col lg:justify-between">
     <a href="index.html" class="inline-block rounded-xl bg-white px-4 py-2"><img src="assets/logo.png" alt="OFFIADS" class="h-8"></a>
     <div>
+      <div class="mb-6 max-w-md rounded-2xl border border-white/15 bg-white/10 p-4 shadow-xl backdrop-blur-sm">
+        <div class="mb-3 flex items-center justify-between text-xs text-emerald-100"><span>APERÇU OFFIADS</span><span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-emerald-400"></span> Diffusion digitale</span></div>
+        <div class="rounded-xl bg-gradient-to-br from-[#0ea5e9] via-[#087e9c] to-[#009668] p-5">
+          <p class="text-xs font-semibold text-white/80">Votre prochaine campagne</p>
+          <p class="mt-2 text-xl font-extrabold leading-tight">Votre marque, au cœur des pharmacies.</p>
+          <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-white/25"><div class="h-full w-2/3 rounded-full bg-white"></div></div>
+        </div>
+      </div>
       <h1 class="text-4xl font-extrabold leading-tight">Touchez les pharmaciens.<br>Développez votre marque.</h1>
       <p class="mt-4 max-w-md text-emerald-50/90">Créez vos campagnes, ciblez par wilaya ou région et suivez vos résultats en temps réel dans les logiciels de pharmacie partenaires.</p>
     </div>
@@ -65,6 +73,7 @@
   </section>
 </div>
 <script src="js/geo.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/core.js"></script>
 <script>
 const q = new URLSearchParams(location.search);
@@ -99,13 +108,14 @@ async function doRegister(ev) {
   return false;
 }
 function forgot() {
-  OFF.dialog('Mot de passe oublié', `<p class="mb-3 text-xs text-slate-500">Mode local : l'envoi d'e-mail n'est pas encore branché. Saisissez votre e-mail et un nouveau mot de passe.</p>
-    <div class="space-y-3"><input id="fp-email" type="email" placeholder="Votre e-mail" class="${OFF.K.input}"><input id="fp-pw" type="password" placeholder="Nouveau mot de passe" class="${OFF.K.input}"></div>`,
-    [{ label: 'Annuler', cls: OFF.K.btn2 }, { label: 'Réinitialiser', fn: async () => {
-      try { await OFF.resetPassword(document.getElementById('fp-email').value, document.getElementById('fp-pw').value); OFF.toast('Mot de passe réinitialisé. Connectez-vous.'); document.getElementById('l-email').value = document.getElementById('fp-email').value; }
+  OFF.dialog('Mot de passe oublié', `<p class="mb-3 text-xs text-slate-500">Nous vous enverrons un lien de réinitialisation à votre adresse e-mail.</p><input id="fp-email" type="email" placeholder="Votre e-mail" class="${OFF.K.input}">`,
+    [{ label: 'Annuler', cls: OFF.K.btn2 }, { label: 'Envoyer le lien', fn: async () => {
+      try { await OFF.resetPassword(document.getElementById('fp-email').value); OFF.toast('Si ce compte existe, un lien de réinitialisation sera envoyé par e-mail.'); }
       catch (e) { OFF.fail(e); return false; } } }]);
 }
+
 OFF.ready.then(() => {
+  const demo = document.getElementById('demo'); if (demo) demo.classList.add('hidden');
   const u = OFF.me(); if (u) return go(u);
   setMode(q.get('mode') === 'register' ? 'register' : 'login');
 });

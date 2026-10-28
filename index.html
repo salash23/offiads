@@ -17,9 +17,25 @@ html{scroll-padding-top:84px}
 h1,h2,h3{letter-spacing:-.02em}
 @keyframes toastIn{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}.animate-toast{animation:toastIn .25s ease-out forwards}
 /* hero : écran publicitaire rotatif */
-.adslide{position:absolute;inset:0;opacity:0;transition:opacity .8s ease;padding:1.5rem;display:flex;flex-direction:column;justify-content:space-between;color:#fff}
+.adslide{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .8s ease;padding:clamp(.75rem,2vw,1.5rem);display:flex;flex-direction:column;justify-content:space-between;gap:.75rem;color:#fff;overflow:hidden;background-color:#071827}
 .adslide.on{opacity:1}
-.bar{height:3px;background:rgba(255,255,255,.25);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#fff}
+.adslide img,.adslide video,.adslide .campaign-media{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center;background:#071827;z-index:0}
+.adslide:has(img)::after,.adslide:has(video)::after,.adslide:has(.campaign-media)::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.62),transparent 32%,rgba(0,0,0,.08));z-index:1;pointer-events:none}
+.adslide>*{position:relative;z-index:2}
+
+/* Fix affichage de toutes les créations dans l'écran d'accueil */
+#screen #live-ad-slides{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important}
+#screen #live-ad-slides .adslide{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .55s ease,visibility .55s ease}
+#screen #live-ad-slides .adslide.on{opacity:1!important;visibility:visible!important;pointer-events:auto!important}
+#screen #live-ad-slides .adslide img.campaign-media,
+#screen #live-ad-slides .adslide video.campaign-media{position:absolute!important;inset:0!important;display:block!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center center!important;z-index:0!important;background:#071827!important}
+#screen #live-ad-slides .adslide::after{z-index:1!important;pointer-events:none!important}
+#screen #live-ad-slides .adslide .ad-copy,
+#screen #live-ad-slides .adslide > span,
+#screen #live-ad-slides .adslide > div:not(.campaign-media){position:relative;z-index:2}
+.adslide .ad-copy{max-width:72%;text-shadow:0 2px 8px rgba(0,0,0,.65)}
+.adslide.on{opacity:1}
+.bar{flex:1;min-width:0;height:3px;background:rgba(255,255,255,.25);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#fff}
 .bar.on i{animation:fill 4.5s linear forwards}@keyframes fill{to{width:100%}}
 /* carte */
 #map svg{filter:drop-shadow(0 18px 30px rgba(0,0,0,.35))}
@@ -42,7 +58,7 @@ details[open] .plus{transform:rotate(45deg)}.plus{transition:transform .2s}
 <!-- Navbar -->
 <header class="sticky top-0 z-40 border-b border-slate-100 bg-white/85 backdrop-blur">
   <nav class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3">
-    <a href="#top" class="flex items-center" aria-label="OFFIADS – accueil"><img src="assets/logo.png" alt="OFFIADS" class="h-9 w-auto"></a>
+    <a href="#top" class="flex items-center" aria-label="OFFIADS – accueil"><img src="./assets/logo.png" alt="OFFIADS" class="h-10 w-auto" onerror="this.onerror=null;this.src="./assets/logo.png""></a>
     <div class="hidden items-center gap-7 text-sm font-semibold text-slate-600 lg:flex">
       <a href="#section-marche" class="hover:text-[#009668] transition">Comment ça marche</a>
       <a href="#section-zone" class="hover:text-[#009668] transition">Zones et tarifs</a>
@@ -63,37 +79,37 @@ details[open] .plus{transform:rotate(45deg)}.plus{transition:transform .2s}
 
 <main>
 <!-- Hero -->
-<section class="mx-auto grid max-w-7xl items-center gap-12 px-5 pb-16 pt-12 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
+<section class="relative overflow-hidden bg-gradient-to-br from-[#081726] via-[#0e2439] to-[#006b55] text-white"><div class="pointer-events-none absolute inset-0 opacity-25" style="background:radial-gradient(ellipse at 80% 55%,#00a878 0%,transparent 48%)"></div><div class="relative mx-auto grid max-w-7xl items-center gap-x-10 gap-y-7 px-5 pb-6 pt-10 lg:grid-cols-[.9fr_1.1fr] lg:pt-12">
   <div>
-    <p class="inline-flex items-center gap-2 rounded-full bg-[#e8f8f2] py-1 pl-1 pr-3.5 text-xs font-bold text-[#00835b]"><span class="rounded-full bg-[#009668] px-2 py-0.5 text-[10px] text-white">Nouveau</span>Carte des 69 wilayas et 5 régions</p>
-    <h1 class="mt-5 text-4xl font-extrabold leading-[1.08] text-[#081726] md:text-5xl xl:text-[3.4rem]">Votre marque sur l'écran du comptoir, dans toute l'Algérie.</h1>
-    <p class="mt-5 max-w-xl text-base leading-relaxed text-slate-600 md:text-lg">OFFIADS affiche vos images et vos vidéos dans les logiciels de pharmacie. Vous choisissez la zone sur la carte, vous voyez le prix avant de payer, et vous suivez chaque affichage.</p>
+    <p class="inline-flex items-center gap-2 rounded-full bg-emerald-400/15 py-1 pl-1 pr-3.5 text-xs font-bold text-emerald-200"><span class="rounded-full bg-[#009668] px-2 py-0.5 text-[10px] text-white">Nouveau</span>Carte des 69 wilayas et 5 régions</p>
+    <h1 class="mt-5 text-4xl font-extrabold leading-[1.08] text-white md:text-5xl xl:text-[3.4rem]">Votre marque sur l'écran du comptoir, dans toute l'Algérie.</h1>
+    <p class="mt-5 max-w-xl text-base leading-relaxed text-slate-200 md:text-lg">OFFIADS affiche vos images et vos vidéos dans les logiciels de pharmacie. Vous choisissez la zone sur la carte, vous voyez le prix avant de payer, et vous suivez chaque affichage.</p>
     <div class="mt-8 flex flex-wrap items-center gap-3">
       <button onclick="startCampaign()" class="rounded-xl bg-[#009668] px-6 py-3 text-base font-bold text-white shadow-lg shadow-emerald-700/25 transition hover:bg-[#00835b]">Créer une campagne</button>
-      <a href="#section-zone" class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-base font-bold text-slate-700 shadow-sm transition hover:bg-slate-50">Estimer mon budget</a>
-      <button onclick="openVideoDemoModal()" class="px-2 py-3 text-sm font-bold text-slate-600 underline decoration-slate-300 underline-offset-4 hover:text-[#009668]">Voir comment ça marche</button>
+      <a href="#section-zone" class="rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-base font-bold text-white shadow-sm transition hover:bg-white/20">Estimer mon budget</a>
+      <button onclick="openVideoDemoModal()" class="px-2 py-3 text-sm font-bold text-white underline decoration-white/40 underline-offset-4 hover:text-emerald-200">Voir comment ça marche</button>
     </div>
-    <dl class="mt-10 grid max-w-lg grid-cols-3 gap-6 border-t border-slate-100 pt-6">
-      <div><dt class="text-xs font-semibold text-slate-500">Pharmacies actives</dt><dd id="k-ph" class="mt-1 text-3xl font-extrabold text-[#081726]">—</dd></div>
-      <div><dt class="text-xs font-semibold text-slate-500">Wilayas couvertes</dt><dd id="k-wi" class="mt-1 text-3xl font-extrabold text-[#081726]">—</dd></div>
-      <div><dt class="text-xs font-semibold text-slate-500">Formats</dt><dd class="mt-1 text-3xl font-extrabold text-[#081726]">Image<span class="text-slate-300"> / </span>Vidéo</dd></div>
-    </dl>
+
   </div>
 
   <!-- écran de pharmacie -->
-  <div class="relative mx-auto w-full max-w-lg">
+  <div class="relative mx-auto w-full max-w-3xl">
     <div class="rounded-[22px] bg-[#081726] p-3 shadow-2xl shadow-slate-900/25 ring-1 ring-slate-900/10">
-      <div id="screen" class="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#0e2439]" aria-live="off">
-        <div class="adslide on" style="background:linear-gradient(135deg,#0c4a6e,#0ea5e9 62%,#bae6fd)"><div><p class="text-xs font-bold text-sky-100">Laboratoire Dermavital</p><h3 class="mt-1 max-w-[75%] text-2xl font-extrabold leading-tight">Une peau plus saine, chaque jour.</h3></div><button onclick="showToast('Le pharmacien clique : l\'interaction est enregistrée dans vos rapports.')" class="self-start rounded-lg bg-white px-4 py-2 text-xs font-bold text-sky-800 shadow">Découvrir la gamme</button></div>
-        <div class="adslide" style="background:linear-gradient(135deg,#064e3b,#009668 65%,#6ee7b7)"><div><p class="text-xs font-bold text-emerald-100">Vitalis Santé</p><h3 class="mt-1 max-w-[75%] text-2xl font-extrabold leading-tight">Vitamines D et C pour l'hiver.</h3></div><button onclick="showToast('Le pharmacien clique : l\'interaction est enregistrée dans vos rapports.')" class="self-start rounded-lg bg-white px-4 py-2 text-xs font-bold text-emerald-800 shadow">Voir l'offre</button></div>
-        <div class="adslide" style="background:linear-gradient(135deg,#1e1b4b,#4f46e5 62%,#a5b4fc)"><div><p class="text-xs font-bold text-indigo-100">PharmaNova</p><h3 class="mt-1 max-w-[75%] text-2xl font-extrabold leading-tight">Nouveau : le glucomètre connecté.</h3></div><button onclick="showToast('Le pharmacien clique : l\'interaction est enregistrée dans vos rapports.')" class="self-start rounded-lg bg-white px-4 py-2 text-xs font-bold text-indigo-800 shadow">En savoir plus</button></div>
-        <div class="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur"><span class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400"></span>Pharmacie #042 · en direct</div>
-        <div class="absolute inset-x-5 bottom-3 grid grid-cols-3 gap-1.5"><span class="bar on"><i></i></span><span class="bar"><i></i></span><span class="bar"><i></i></span></div>
+      <div id="screen" class="relative w-full aspect-video min-h-[240px] overflow-hidden rounded-xl bg-[#071827]" aria-live="polite">
+        <div id="live-ad-slides" class="absolute inset-0 w-full h-full"><div class="adslide on" style="background:linear-gradient(135deg,#0c4a6e,#0ea5e9 62%,#bae6fd)"><div><p class="text-xs font-bold text-sky-100">OFFIADS · Réseau pharmacie</p><h3 class="mt-1 max-w-[85%] text-2xl font-extrabold leading-tight">Publicités en cours de diffusion</h3></div><p class="text-sm font-semibold">Chargement des campagnes actives…</p></div></div>
+        <div class="absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur"><span class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400"></span><span id="live-ad-status">Campagnes en cours</span></div>
+        <div id="live-ad-bars" class="absolute inset-x-5 bottom-3 z-20 flex gap-1.5"><span class="bar on"><i></i></span><span class="bar"><i></i></span><span class="bar"><i></i></span></div>
       </div>
     </div>
     <div class="mx-auto h-3 w-1/3 rounded-b-xl bg-slate-200"></div><div class="mx-auto h-1.5 w-1/2 rounded-b-xl bg-slate-100"></div>
   </div>
-</section>
+    <dl class="col-span-1 lg:col-span-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.06] p-4 sm:p-5"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-400/10 text-2xl text-emerald-300">♧</span><div><dt class="text-xs text-slate-300">Pharmacies actives</dt><dd id="k-ph" class="mt-1 text-3xl font-extrabold text-white">—</dd></div></div>
+      <div class="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.06] p-4 sm:p-5"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-400/10 text-2xl text-emerald-300">⌖</span><div><dt class="text-xs text-slate-300">Wilayas couvertes</dt><dd id="k-wi" class="mt-1 text-3xl font-extrabold text-white">—</dd></div></div>
+      <div class="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.06] p-4 sm:p-5"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-400/10 text-2xl text-emerald-300">↗</span><div><dt class="text-xs text-slate-300">Formats</dt><dd class="mt-1 text-xl font-extrabold text-white">Image <span class="text-emerald-300">/</span> Vidéo</dd></div></div>
+      <div class="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.06] p-4 sm:p-5"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-400/10 text-2xl text-emerald-300">◉</span><div><dt class="text-xs text-slate-300">Campagnes en cours</dt><dd id="k-campaigns" class="mt-1 text-3xl font-extrabold text-white">—</dd></div></div>
+    </dl>
+</div></section>
 
 <!-- Comment ça marche : vraie séquence -->
 <section id="section-marche" class="border-y border-slate-100 bg-[#F4F7FA]">
@@ -179,7 +195,7 @@ details[open] .plus{transform:rotate(45deg)}.plus{transition:transform .2s}
 
 <footer class="border-t border-slate-100 bg-white">
   <div class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 px-5 py-8 text-sm text-slate-500 md:flex-row md:items-center">
-    <img src="assets/logo.png" alt="OFFIADS" class="h-8 w-auto">
+    <img src="./assets/logo.png" alt="OFFIADS" class="h-8 w-auto">
     <p>© <span id="yr"></span> OFFIADS. La publicité au cœur des pharmacies.</p>
     <div class="flex gap-5 font-semibold"><a href="#section-zone" class="hover:text-[#009668]">Tarifs</a><a href="login.html" class="hover:text-[#009668]">Espace annonceur</a><a href="javascript:void(0)" onclick="openContactModal()" class="hover:text-[#009668]">Contact</a></div>
   </div>
@@ -187,7 +203,7 @@ details[open] .plus{transform:rotate(45deg)}.plus{transition:transform .2s}
 
 <!-- Modals -->
   <div id="modal-video-demo" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
       <div class="flex justify-between items-center"><h3 class="font-bold text-slate-900 text-sm">Comment ça marche ?</h3><button onclick="closeVideoDemoModal()" class="text-slate-400 hover:text-slate-600 text-sm" aria-label="Fermer">✕</button></div>
       <ol class="space-y-3 text-sm text-slate-600">
         <li><b class="text-slate-900">1. Créez votre campagne</b> — format image ou vidéo, titre et bouton d'action.</li>
@@ -211,7 +227,8 @@ details[open] .plus{transform:rotate(45deg)}.plus{transition:transform .2s}
   </div>
   <div id="toast-box" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="js/geo.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/geo.js"></script>
 <script src="js/core.js"></script>
 <script>
 function startCampaign() {
@@ -237,12 +254,65 @@ function submitContactForm() {
   closeContactModal(); OFF.toast('Merci ! Votre message a bien été envoyé.');
 }
 
-/* ---- Hero : écran qui change d'annonce ---- */
-(function () {
-  const sl = [...document.querySelectorAll('.adslide')], br = [...document.querySelectorAll('#screen .bar')]; let i = 0;
-  const show = n => { i = n; sl.forEach((s, k) => s.classList.toggle('on', k === n)); br.forEach((b, k) => { b.classList.remove('on'); void b.offsetWidth; b.classList.toggle('on', k === n); }); };
-  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => show((i + 1) % sl.length), 4500);
-})();
+/* ---- Aperçu public : chiffres et campagnes réelles depuis Supabase ---- */
+const PUBLIC_SUPABASE_URL = 'https://hxmrvodbirqlihsjblgr.supabase.co';
+const PUBLIC_SUPABASE_KEY = 'sb_publishable_GudmaonttbHsxS332AGb-Q_tFSC04iN';
+let publicSb = null, liveAds = [], liveAdIndex = 0, liveAdTimer = null, liveAdsSignature = ''; 
+try { if (window.supabase?.createClient) publicSb = window.supabase.createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_KEY); } catch (e) { console.warn('Supabase public init:', e); }
+function safeText(v) { return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function renderLiveAds(rows) {
+  const host = document.getElementById('live-ad-slides'), bars = document.getElementById('live-ad-bars'), status = document.getElementById('live-ad-status');
+  if (!host || !bars || !status) return;
+  const nextAds = (rows || []).filter(a => a.media_url || a.headline || a.name);
+  const signature = JSON.stringify(nextAds.map(a => [a.id,a.media_url,a.headline,a.name,a.start_at,a.end_at]));
+  if (signature === liveAdsSignature) return;
+  liveAdsSignature = signature; liveAds = nextAds;
+  if (!liveAds.length) {
+    host.innerHTML = '<div class="adslide on" style="padding:0;background:#fff"><img src="./assets/offiads-house-ad.png" alt="Publicité OFFIADS" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></div>';
+    bars.innerHTML = ''; status.textContent = 'En attente de campagne'; return;
+  }
+  host.innerHTML = liveAds.map((a, i) => {
+    const title = safeText(a.headline || a.name || 'Publicité OFFIADS'), brand = safeText(a.name || 'Annonceur OFFIADS');
+    const url = /^https:\/\//i.test(a.media_url || '') ? a.media_url : '';
+    const isVideo = /video|mp4/i.test(a.media_type || '') || /\.mp4(\?|$)/i.test(url);
+    const media = url ? (isVideo ? `<video class="campaign-media" src="${safeText(url)}" muted autoplay loop playsinline preload="auto"></video>` : `<img class="campaign-media" src="${safeText(url)}" alt="Visuel de campagne" loading="eager">`) : '';
+    const background = i % 2 ? 'linear-gradient(135deg,#064e3b,#009668 65%,#6ee7b7)' : 'linear-gradient(135deg,#0c4a6e,#0ea5e9 62%,#bae6fd)';
+    return `<div class="adslide ${i===0?'on':''} relative" style="background:${background}">${media}<div class="ad-copy"><p class="text-xs font-bold text-white/90">${brand}</p><h3 class="mt-1 max-w-[85%] text-2xl font-extrabold leading-tight">${title}</h3></div>${a.cta ? `<div class="relative z-10 self-start rounded-lg bg-white px-4 py-2 text-xs font-bold text-sky-800 shadow">${safeText(a.cta)}</div>` : '<span class="relative z-10 text-xs font-semibold">Diffusion en cours sur OFFIADS</span>'}</div>`;
+  }).join('');
+  bars.innerHTML = liveAds.map((_,i)=>`<span class="bar ${i===0?'on':''}"><i></i></span>`).join('');
+  status.textContent = `${liveAds.length} campagne${liveAds.length>1?'s':''} en cours`;
+  liveAdIndex = 0;
+  if (liveAdTimer) clearInterval(liveAdTimer);
+  // La rotation des campagnes doit fonctionner même si le système limite les animations.
+  if (liveAds.length > 1) liveAdTimer = setInterval(() => {
+    const slides = [...host.querySelectorAll('.adslide')], b = [...bars.querySelectorAll('.bar')];
+    if (!slides.length) return;
+    liveAdIndex = (liveAdIndex + 1) % slides.length;
+    slides.forEach((el,i)=>el.classList.toggle('on',i===liveAdIndex));
+    b.forEach((el,i)=>{el.classList.remove('on');void el.offsetWidth;el.classList.toggle('on',i===liveAdIndex%Math.max(1,b.length));});
+  }, 4500);
+}
+async function loadPublicLandingData() {
+  if (!publicSb) return;
+  try {
+    const {data: stats, error: phErr} = await publicSb.rpc('public_offiads_stats');
+    if (phErr) throw phErr;
+    const activeCount = Number(stats?.active_pharmacies || 0);
+    const coveredCount = Number(stats?.covered_wilayas || 0);
+    const count = (el, to) => { if (!el) return; if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = OFF.fmt(to); return; } const t0=performance.now(); (function st(t){const k=Math.min(1,(t-t0)/900);el.textContent=OFF.fmt(Math.round(to*(1-Math.pow(1-k,3))));if(k<1)requestAnimationFrame(st);})(t0); };
+    count(document.getElementById('k-ph'), activeCount); count(document.getElementById('k-wi'), coveredCount);
+  } catch (e) { console.warn('OFFIADS public pharmacy stats unavailable (RLS/policy?):', e.message); }
+  try {
+    const now = new Date().toISOString();
+    const {data, error} = await publicSb.rpc('public_offiads_active_campaigns');
+    if (error) throw error;
+    const rows = (data || []).filter(a => (!a.start_at || a.start_at <= now) && (!a.end_at || a.end_at >= now));
+    renderLiveAds(rows);
+    const campaignEl = document.getElementById('k-campaigns'); if (campaignEl) campaignEl.textContent = OFF.fmt(rows.length);
+  } catch (e) { console.warn('OFFIADS live campaign preview unavailable (RLS/policy?):', e.message); renderLiveAds([]); }
+}
+loadPublicLandingData();
+setInterval(loadPublicLandingData, 10000);
 
 /* ---- Carte, zone et estimation ---- */
 const $g = id => document.getElementById(id), Z = { mode: 'national', region: 'Centre', wilaya: 'Alger' };
@@ -283,9 +353,7 @@ function estimate() {
 OFF.ready.then(() => {
   const u = OFF.me(); if (u) $g('login-lbl').textContent = 'Mon espace';
   $g('yr').textContent = new Date().getFullYear();
-  const act = OFF.D().pharmacies.filter(p => p.active), wil = new Set(act.map(p => p.wilaya)).size;
-  const count = (el, to) => { if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = OFF.fmt(to); return; } const t0 = performance.now(); (function st(t) { const k = Math.min(1, (t - t0) / 1100); el.textContent = OFF.fmt(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(st); })(t0); };
-  count($g('k-ph'), act.length); count($g('k-wi'), wil);
+  const act = OFF.D().pharmacies.filter(p => p.active);
   const pharm = OFF.pharmByWilaya(act), map = $g('map');
   map.addEventListener('mouseover', e => { const p = e.target.closest('path[data-w]'); if (!p) return; const x = GEO.WL[+p.dataset.w]; $g('hov').textContent = GEO.wcode(x) + ' – ' + x + ' · région ' + GEO.REG[x] + ' · ' + (pharm[x] || 0) + ' pharmacie(s) active(s)'; });
   map.addEventListener('mouseleave', () => $g('hov').textContent = '');
